@@ -7,13 +7,21 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "biome format ./src --write"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@biomejs/cli-darwin-arm64": "^1.9.4",
+    "@biomejs/cli-darwin-x64": "^1.9.4",
+    "@biomejs/cli-linux-arm64": "^1.9.4",
+    "@biomejs/cli-linux-x64": "^1.9.4",
+    "@biomejs/cli-win32-arm64": "^1.9.4",
+    "@biomejs/cli-win32-x64": "^1.9.4",
     "@eslint/js": "^9.17.0",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.18",
