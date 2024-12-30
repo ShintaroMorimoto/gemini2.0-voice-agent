@@ -1,4 +1,3 @@
-import './App.css';
 import ControlTray from './components/control-tray/ControlTray';
 
 function App() {
