@@ -29,33 +29,58 @@ export class AudioRecorder extends EventEmitter {
 			throw new Error('Cloud not request user media');
 		}
 
-		this.starting = new Promise(async (resolve, reject) => {
-			this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-			this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
-			this.source = this.audioContext.createMediaStreamSource(this.stream);
+		this.starting = new Promise((resolve, reject) => {
+			(async () => {
+				try {
+					this.stream = await navigator.mediaDevices.getUserMedia({
+						audio: true,
+					});
+					this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
+					this.source = this.audioContext.createMediaStreamSource(this.stream);
 
-			const workletName = 'audio-recorder-worklet';
-			const src = createWorkletFromSrc(workletName, AudioRecordingWorklet);
+					const workletName = 'audio-recorder-worklet';
+					const src = createWorkletFromSrc(workletName, AudioRecordingWorklet);
 
-			await this.audioContext.audioWorklet.addModule(src);
-			this.recordingWorklet = new AudioWorkletNode(
-				this.audioContext,
-				workletName,
-			);
+					await this.audioContext.audioWorklet.addModule(src);
+					this.recordingWorklet = new AudioWorkletNode(
+						this.audioContext,
+						workletName,
+					);
 
-			this.recordingWorklet.port.onmessage = async (ev: MessageEvent) => {
-				const arrayBuffer = ev.data.data.int16arrayBuffer;
+					this.recordingWorklet.port.onmessage = async (ev: MessageEvent) => {
+						const arrayBuffer = ev.data.data.int16arrayBuffer;
 
-				if (arrayBuffer) {
-					const arrayBufferString = arrayBufferToBase64(arrayBuffer);
-					this.emit('data', arrayBufferString);
+						if (arrayBuffer) {
+							const arrayBufferString = arrayBufferToBase64(arrayBuffer);
+							this.emit('data', arrayBufferString);
+						}
+					};
+					this.source.connect(this.recordingWorklet);
+
+					this.recording = true;
+					resolve();
+					this.starting = null;
+				} catch (error) {
+					reject(error);
 				}
-			};
-			this.source.connect(this.recordingWorklet);
-
-			this.recording = true;
-			resolve();
-			this.starting = null;
+			})();
 		});
+	}
+	stop() {
+		const handleStop = () => {
+			this.source?.disconnect();
+			if (this.stream) {
+				for (const track of this.stream.getTracks()) {
+					track.stop();
+				}
+			}
+			this.stream = undefined;
+			this.recordingWorklet = undefined;
+		};
+		if (this.starting) {
+			this.starting.then(handleStop);
+			return;
+		}
+		handleStop();
 	}
 }
