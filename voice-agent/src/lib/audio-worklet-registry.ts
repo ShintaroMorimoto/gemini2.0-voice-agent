@@ -3,7 +3,7 @@ export type WorkletGraph = {
 	handlers: Array<(this: MessagePort, ev: MessageEvent) => any>;
 };
 
-export const registerWorklet: Map<
+export const registeredWorklets: Map<
 	AudioContext,
 	Record<string, WorkletGraph>
 > = new Map();

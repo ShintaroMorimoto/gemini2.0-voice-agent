@@ -53,7 +53,7 @@ class AudioProcessingWorklet extends AudioWorkletProcessor {
 
   processChunk(float32Array) {
     const l = float32Array.length;
-    
+
     for (let i = 0; i < l; i++) {
       // convert float32 -1 to 1 to int16 -32768 to 32767
       const int16Value = float32Array[i] * 32768;

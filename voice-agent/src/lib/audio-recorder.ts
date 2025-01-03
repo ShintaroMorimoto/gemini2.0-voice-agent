@@ -67,6 +67,7 @@ export class AudioRecorder extends EventEmitter {
 		});
 	}
 	stop() {
+		// start 関数は非同期処理であるため、それが完了していない場合はその完了を待つ
 		const handleStop = () => {
 			this.source?.disconnect();
 			if (this.stream) {
