@@ -48,7 +48,6 @@ export function useLiveAPI({
 		const stopAudioStreamer = () => audioStreamRef.current?.stop();
 
 		const onAudio = (data: ArrayBuffer) => {
-			console.log('audioStreamRef.current', audioStreamRef.current);
 			audioStreamRef.current?.addPCM16(new Uint8Array(data));
 		};
 

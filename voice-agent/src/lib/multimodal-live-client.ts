@@ -204,7 +204,6 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 					if (b64) {
 						const data = base64ToArrayBuffer(b64);
 						this.emit('audio', data);
-						console.log('data', data);
 						this.log('server.audio', `buffer (${data.byteLength})`);
 					}
 				}
