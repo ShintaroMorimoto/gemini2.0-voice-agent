@@ -159,7 +159,7 @@ export class AudioStreamer {
 
 			// Ensure we never schedule in the past
 			const startTime = Math.max(this.scheduledTime, this.context.currentTime);
-			this.source.start(startTime);
+			source.start(startTime);
 			this.scheduledTime = startTime + audioBuffer.duration;
 		}
 

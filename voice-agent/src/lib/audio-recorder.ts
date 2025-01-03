@@ -1,5 +1,6 @@
 import EventEmitter from 'eventemitter3';
 import { createWorkletFromSrc } from './audio-worklet-registry';
+import { audioContext } from './utils';
 import AudioRecordingWorklet from './worklets/audio-processing';
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -35,7 +36,9 @@ export class AudioRecorder extends EventEmitter {
 					this.stream = await navigator.mediaDevices.getUserMedia({
 						audio: true,
 					});
-					this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
+					this.audioContext = await audioContext({
+						sampleRate: this.sampleRate,
+					});
 					this.source = this.audioContext.createMediaStreamSource(this.stream);
 
 					const workletName = 'audio-recorder-worklet';
