@@ -1,10 +1,31 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import type {
 	Content,
 	FunctionCall,
+	GenerationConfig,
 	GenerativeContentBlob,
 	Part,
 	Tool,
 } from '@google/generative-ai';
+
+/**
+ * this module contains type-definitions and Type-Guards
+ */
 
 // Type-definitions
 
@@ -13,15 +34,14 @@ import type {
 /**
  * the config to initiate the session
  */
-
 export type LiveConfig = {
 	model: string;
 	systemInstruction?: { parts: Part[] };
 	generationConfig?: Partial<LiveGenerationConfig>;
-	tools?: Array<Tool | { googleSearch: {} } | { codeExuction: {} }>;
+	tools?: Array<Tool | { googleSearch: {} } | { codeExecution: {} }>;
 };
 
-export type LiveGenerationConfig = {
+export type LiveGenerationConfig = GenerationConfig & {
 	responseModalities: 'text' | 'audio' | 'image';
 	speechConfig?: {
 		voiceConfig?: {
@@ -57,7 +77,7 @@ export type RealtimeInputMessage = {
 
 export type ToolResponseMessage = {
 	toolResponse: {
-		functionResponse: LiveFunctionResponse[];
+		functionResponses: LiveFunctionResponse[];
 	};
 };
 
@@ -69,32 +89,12 @@ export type LiveFunctionResponse = {
 };
 
 /** Incoming types */
+
 export type LiveIncomingMessage =
 	| ToolCallCancellationMessage
 	| ToolCallMessage
 	| ServerContentMessage
 	| SetupCompleteMessage;
-
-export type ToolCallCancellationMessage = {
-	toolCallCancellation: {
-		id: string[];
-	};
-};
-
-export type toolCallCancellation =
-	ToolCallCancellationMessage['toolCallCancellation'];
-
-export type ToolCallMessage = {
-	toolCall: ToolCall;
-};
-
-export type LiveFunctionCall = FunctionCall & {
-	id: string;
-};
-
-export type ToolCall = {
-	functionCalls: LiveFunctionCall[];
-};
 
 export type SetupCompleteMessage = { setupComplete: {} };
 
@@ -110,12 +110,32 @@ export type ModelTurn = {
 	};
 };
 
-export type TurnComplete = {
-	turnComplete: boolean;
+export type TurnComplete = { turnComplete: boolean };
+
+export type Interrupted = { interrupted: true };
+
+export type ToolCallCancellationMessage = {
+	toolCallCancellation: {
+		ids: string[];
+	};
 };
 
-export type Interrupted = {
-	interrupted: true;
+export type ToolCallCancellation =
+	ToolCallCancellationMessage['toolCallCancellation'];
+
+export type ToolCallMessage = {
+	toolCall: ToolCall;
+};
+
+export type LiveFunctionCall = FunctionCall & {
+	id: string;
+};
+
+/**
+ * A `toolCall` message
+ */
+export type ToolCall = {
+	functionCalls: LiveFunctionCall[];
 };
 
 /** log types */
