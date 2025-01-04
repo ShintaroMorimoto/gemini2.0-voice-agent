@@ -4,6 +4,7 @@ import type {
 	Part,
 } from '@google/generative-ai';
 import EventEmitter from 'eventemitter3';
+import { GoogleAuth } from 'google-auth-library';
 import { difference } from 'lodash';
 import {
 	type ClientContentMessage,
@@ -45,7 +46,6 @@ interface MultimodalLiveClientEventTypes {
 
 export type MultimodalLiveAPIClientConnection = {
 	url?: string;
-	apiKey: string;
 };
 
 /**
@@ -60,13 +60,24 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	public getConfig() {
 		return { ...this.config };
 	}
+	private token: Promise<string | null | undefined> | null = null;
 
-	constructor({ url, apiKey }: MultimodalLiveAPIClientConnection) {
+	// TODO: 多分、この辺にVertex AI関連の処理を入れる必要あり。
+	// Vertex AIはプロジェクトIDとロケーションが必要なので、
+	// それも含めてnew WebSocketをする必要がありそう。
+	// いや、違うな。ここはあくまでURLを組み立てているだけ。
+	// なので、ここで認証をするのかな、、。
+	constructor({ url }: MultimodalLiveAPIClientConnection) {
 		super();
+
+		const auth = new GoogleAuth({
+			scopes: 'https://www.googleapis.com/auth/cloud-platform',
+		});
+		this.token = auth.getAccessToken();
+
 		url =
 			url ||
-			'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
-		url += `?key=${apiKey}`;
+			'wss://us-central1-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1alpha.LlmBidiService/BidiGenerateContent';
 		this.url = url;
 		this.send = this.send.bind(this);
 	}
@@ -102,10 +113,11 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 			ws.addEventListener('error', onError);
 			ws.addEventListener('open', (ev: Event) => {
 				if (!this.config) {
-					reject('Invalid config senet to `connect(config)`');
+					reject('Invalid config sent to `connect(config)`');
 					return;
 				}
 				this.log(`client.${ev.type}`, 'Connected to socket)');
+				ws.send(`Authorization: Bearer ${this.token}`);
 				this.emit('open');
 
 				this.ws = ws;
