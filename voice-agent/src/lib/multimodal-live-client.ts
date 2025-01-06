@@ -4,7 +4,6 @@ import type {
 	Part,
 } from '@google/generative-ai';
 import EventEmitter from 'eventemitter3';
-import { GoogleAuth } from 'google-auth-library';
 import { difference } from 'lodash';
 import {
 	type ClientContentMessage,
@@ -70,10 +69,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	constructor({ url }: MultimodalLiveAPIClientConnection) {
 		super();
 
-		const auth = new GoogleAuth({
-			scopes: 'https://www.googleapis.com/auth/cloud-platform',
-		});
-		this.token = auth.getAccessToken();
+		this.token = this._getAccessToken();
 
 		url =
 			url ||
@@ -295,5 +291,21 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		}
 		const str = JSON.stringify(request);
 		this.ws.send(str);
+	}
+
+	async _getAccessToken(): Promise<string> {
+		const cloudFunctionsUrl = 'http://localhost:8080/';
+
+		try {
+			const response = await fetch(cloudFunctionsUrl);
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			const token = await response.json();
+			return token;
+		} catch (error) {
+			console.error('Error fetching access token:', error);
+			throw error;
+		}
 	}
 }
