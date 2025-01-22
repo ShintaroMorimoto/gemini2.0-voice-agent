@@ -1,0 +1,20 @@
+{
+  "name": "backend",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@hono/node-server": "^1.13.7",
+    "@hono/node-ws": "^1.0.6",
+    "google-auth-library": "^9.15.0",
+    "hono": "^4.6.17",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.7.1"
+  }
+}
