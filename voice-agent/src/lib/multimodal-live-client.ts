@@ -3,7 +3,7 @@ import type {
 	GenerativeContentBlob,
 	Part,
 } from '@google/generative-ai';
-import EventEmitter from 'eventemitter3';
+import { EventEmitter } from 'eventemitter3';
 import { difference } from 'lodash';
 import {
 	type ClientContentMessage,
@@ -19,12 +19,12 @@ import {
 	type ToolResponseMessage,
 	isInterrupted,
 	isModelTurn,
-	isServerContenteMessage,
+	isServerContentMessage,
 	isSetupCompleteMessage,
 	isToolCallCancellationMessage,
 	isToolCallMessage,
 	isTurnComplete,
-} from '../..//multimodal-live-types';
+} from '../../multimodal-live-types';
 import { base64ToArrayBuffer, blobToJSON } from './utils';
 
 /**
@@ -39,12 +39,13 @@ interface MultimodalLiveClientEventTypes {
 	interrupted: () => void;
 	setupcomplete: () => void;
 	turncomplete: () => void;
-	toolcall: (toolcall: ToolCall) => void;
-	toolcallcancellation: (toolcallcancellation: ToolCallCancellation) => void;
+	toolcall: (toolCall: ToolCall) => void;
+	toolcallcancellation: (toolcallCancellation: ToolCallCancellation) => void;
 }
 
 export type MultimodalLiveAPIClientConnection = {
 	url?: string;
+	apiKey: string;
 };
 
 /**
@@ -59,21 +60,13 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	public getConfig() {
 		return { ...this.config };
 	}
-	private token: Promise<string | null | undefined> | null = null;
 
-	// TODO: 多分、この辺にVertex AI関連の処理を入れる必要あり。
-	// Vertex AIはプロジェクトIDとロケーションが必要なので、
-	// それも含めてnew WebSocketをする必要がありそう。
-	// いや、違うな。ここはあくまでURLを組み立てているだけ。
-	// なので、ここで認証をするのかな、、。
-	constructor({ url }: MultimodalLiveAPIClientConnection) {
+	constructor({ url, apiKey }: MultimodalLiveAPIClientConnection) {
 		super();
-
-		this.token = this._getAccessToken();
-
 		url =
 			url ||
-			'wss://us-central1-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1alpha.LlmBidiService/BidiGenerateContent';
+			'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+		url += `?key=${apiKey}`;
 		this.url = url;
 		this.send = this.send.bind(this);
 	}
@@ -102,7 +95,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		return new Promise((resolve, reject) => {
 			const onError = (ev: Event) => {
 				this.disconnect(ws);
-				const message = `Could not connect to ${this.url}`;
+				const message = `Could not connect to "${this.url}"`;
 				this.log(`server.${ev.type}`, message);
 				reject(new Error(message));
 			};
@@ -112,16 +105,15 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 					reject('Invalid config sent to `connect(config)`');
 					return;
 				}
-				this.log(`client.${ev.type}`, 'Connected to socket)');
-				ws.send(`Authorization: Bearer ${this.token}`);
+				this.log(`client.${ev.type}`, `connected to socket`);
 				this.emit('open');
 
 				this.ws = ws;
 
-				const SetupMessage: SetupMessage = {
+				const setupMessage: SetupMessage = {
 					setup: this.config,
 				};
-				this._sendDirect(SetupMessage);
+				this._sendDirect(setupMessage);
 				this.log('client.send', 'setup');
 
 				ws.removeEventListener('error', onError);
@@ -141,7 +133,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 					}
 					this.log(
 						`server.${ev.type}`,
-						`disconnected ${reason ? `with reason ${reason}` : ''}`,
+						`disconnected ${reason ? `with reason: ${reason}` : ``}`,
 					);
 					this.emit('close', ev);
 				});
@@ -156,7 +148,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		if ((!ws || this.ws === ws) && this.ws) {
 			this.ws.close();
 			this.ws = null;
-			this.log('client.close,', 'Disconnected');
+			this.log('client.close', `Disconnected`);
 			return true;
 		}
 		return false;
@@ -166,7 +158,6 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		const response: LiveIncomingMessage = (await blobToJSON(
 			blob,
 		)) as LiveIncomingMessage;
-
 		if (isToolCallMessage(response)) {
 			this.log('server.toolCall', response);
 			this.emit('toolcall', response.toolCall);
@@ -177,14 +168,16 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 			this.emit('toolcallcancellation', response.toolCallCancellation);
 			return;
 		}
+
 		if (isSetupCompleteMessage(response)) {
-			this.log('server.send', 'setUpComplete');
+			this.log('server.send', 'setupComplete');
 			this.emit('setupcomplete');
+			return;
 		}
 
 		// this json also might be `contentUpdate { interrupted: true }`
 		// or contentUpdate { end_of_turn: true }
-		if (isServerContenteMessage(response)) {
+		if (isServerContentMessage(response)) {
 			const { serverContent } = response;
 			if (isInterrupted(serverContent)) {
 				this.log('receive.serverContent', 'interrupted');
@@ -194,56 +187,70 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 			if (isTurnComplete(serverContent)) {
 				this.log('server.send', 'turnComplete');
 				this.emit('turncomplete');
-				// plausible theres more to the message, continue
+				//plausible theres more to the message, continue
 			}
+
 			if (isModelTurn(serverContent)) {
 				let parts: Part[] = serverContent.modelTurn.parts;
 
 				// when its audio that is returned for modelTurn
-				const audioParts = parts.filter((p) =>
-					p.inlineData?.mimeType.startsWith('audio/pcm'),
+				const audioParts = parts.filter(
+					(p) => p.inlineData && p.inlineData.mimeType.startsWith('audio/pcm'),
 				);
 				const base64s = audioParts.map((p) => p.inlineData?.data);
 
 				// strip the audio parts out of the modelTurn
 				const otherParts = difference(parts, audioParts);
+				// console.log("otherParts", otherParts);
 
-				for (const b64 of base64s) {
+				base64s.forEach((b64) => {
 					if (b64) {
 						const data = base64ToArrayBuffer(b64);
 						this.emit('audio', data);
-						this.log('server.audio', `buffer (${data.byteLength})`);
+						this.log(`server.audio`, `buffer (${data.byteLength})`);
 					}
-				}
-
+				});
 				if (!otherParts.length) {
 					return;
 				}
+
 				parts = otherParts;
 
 				const content: ModelTurn = { modelTurn: { parts } };
 				this.emit('content', content);
-				this.log('server.content', response);
+				this.log(`server.content`, response);
 			}
 		} else {
-			console.log('received unmathed message', response);
+			console.log('received unmatched message', response);
 		}
 	}
+
 	/**
 	 * send realtimeInput, this is base64 chunks of "audio/pcm" and/or "image/jpg"
 	 */
 	sendRealtimeInput(chunks: GenerativeContentBlob[]) {
 		let hasAudio = false;
+		let hasVideo = false;
 		for (let i = 0; i < chunks.length; i++) {
 			const ch = chunks[i];
 			if (ch.mimeType.includes('audio')) {
 				hasAudio = true;
 			}
-			if (hasAudio) {
+			if (ch.mimeType.includes('image')) {
+				hasVideo = true;
+			}
+			if (hasAudio && hasVideo) {
 				break;
 			}
 		}
-		const message = 'audio';
+		const message =
+			hasAudio && hasVideo
+				? 'audio + video'
+				: hasAudio
+					? 'audio'
+					: hasVideo
+						? 'video'
+						: 'unknown';
 
 		const data: RealtimeInputMessage = {
 			realtimeInput: {
@@ -251,8 +258,9 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 			},
 		};
 		this._sendDirect(data);
-		this.log('client.realtimeInput', message);
+		this.log(`client.realtimeInput`, message);
 	}
+
 	/**
 	 *  send a response to a function call and provide the id of the functions you are responding to
 	 */
@@ -260,27 +268,32 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		const message: ToolResponseMessage = {
 			toolResponse,
 		};
+
 		this._sendDirect(message);
-		this.log('client.toolResponse', message);
+		this.log(`client.toolResponse`, message);
 	}
+
 	/**
 	 * send normal content parts such as { text }
 	 */
 	send(parts: Part | Part[], turnComplete = true) {
-		const partsArray = Array.isArray(parts) ? parts : [parts];
+		parts = Array.isArray(parts) ? parts : [parts];
 		const content: Content = {
 			role: 'user',
-			parts: partsArray,
+			parts,
 		};
+
 		const clientContentRequest: ClientContentMessage = {
 			clientContent: {
 				turns: [content],
 				turnComplete,
 			},
 		};
+
 		this._sendDirect(clientContentRequest);
-		this.log('client.send', clientContentRequest);
+		this.log(`client.send`, clientContentRequest);
 	}
+
 	/**
 	 *  used internally to send all messages
 	 *  don't use directly unless trying to send an unsupported message type
@@ -291,21 +304,5 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		}
 		const str = JSON.stringify(request);
 		this.ws.send(str);
-	}
-
-	async _getAccessToken(): Promise<string> {
-		const cloudFunctionsUrl = 'http://localhost:8080/';
-
-		try {
-			const response = await fetch(cloudFunctionsUrl);
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-			const token = await response.json();
-			return token;
-		} catch (error) {
-			console.error('Error fetching access token:', error);
-			throw error;
-		}
 	}
 }

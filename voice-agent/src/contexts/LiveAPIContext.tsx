@@ -10,9 +10,9 @@ export type LiveAPIProviderProps = {
 };
 
 export const LiveAPIProvider: FC<LiveAPIProviderProps> = ({
+	children,
 	url,
 	apiKey,
-	children,
 }) => {
 	const liveAPI = useLiveAPI({ url, apiKey });
 

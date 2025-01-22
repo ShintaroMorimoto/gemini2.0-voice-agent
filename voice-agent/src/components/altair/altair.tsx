@@ -20,12 +20,28 @@ const declaration: FunctionDeclaration = {
 	},
 };
 
+const API_KEY = import.meta.env.VITE_REACT_APP_GEMINI_API_KEY as string;
+if (typeof API_KEY !== 'string') {
+	throw new Error('REACT_APP_GEMINI_API_KEY is not set in .env');
+}
+
+const PROJECT = import.meta.env.VITE_VERTEX_AI_PROJECT as string;
+if (typeof PROJECT !== 'string') {
+	throw new Error('VITE_VERTEX_AI_PROJECT is not set in .env');
+}
+
+const LOCATION = import.meta.env.VITE_VERTEX_AI_LOCATION as string;
+if (typeof LOCATION !== 'string') {
+	throw new Error('VITE_VERTEX_AI_LOCATION is not set in .env');
+}
+
 function AltairComponent() {
 	const [jsonString, setJSONString] = useState<string>('');
 	const { client, setConfig } = useLiveAPIContext();
 
 	useEffect(() => {
 		setConfig({
+			// model: `projects/${PROJECT}/locations/${LOCATION}/publishers/google/models/gemini-2.0-flash-exp`,
 			model: 'models/gemini-2.0-flash-exp',
 			generationConfig: {
 				responseModalities: 'audio',
@@ -37,12 +53,12 @@ function AltairComponent() {
 				parts: [
 					{
 						text: '\
-            あなたはSIerの優秀なエンジニアです。クライアントがこれから作りたいシステムについてヒアリングをします。\
-            最終的に以下が明確になるまで、ヒアリングを続けてください。\
+            あなたはSIerの優秀なエンジニアです。\
+			クライアントがこれから作りたいシステムについて、あなたがヒアリングを行います。\
+            以下が明確になるまで、ヒアリングを続けてください。\
             - だれが使うシステムなのか \
-            - どんな機能があるのか \
-            - どんな制約があるのか \
-            - どんな要件があるのか \
+            - どんなときに使われるシステムなのか \
+            - どんな機能が必要なのか \
             ',
 					},
 				],
