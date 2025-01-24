@@ -231,6 +231,7 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 
 					events.onOpen?.(new Event('open'), ctx);
 
+					// TODO: この処理はapp.get('/ws')の中にあるべきなのでは？
 					serverWs.on('message', async (data, isBinary) => {
 						if (data instanceof Blob) {
 							console.log('received blob on message', data);
@@ -329,7 +330,6 @@ clientWs.on('message', async (message) => {
 	const response: LiveIncomingMessage = (await JSON.parse(
 		message.toString(),
 	)) as LiveIncomingMessage;
-	console.log('response from Gemini', response);
 	// this json also might be `contentUpdate { interrupted: true }`
 	// or contentUpdate { end_of_turn: true }
 	if (isServerContentMessage(response)) {
@@ -370,19 +370,7 @@ app.get(
 	'/ws',
 	upgradeWebSocket(() => {
 		return {
-			onMessage(event) {
-				if (typeof event.data === 'string') {
-					clientWs.send(event.data);
-				} else {
-					const reader = new FileReader();
-					reader.onload = () => {
-						const buffer = reader.result;
-						if (buffer instanceof ArrayBuffer) {
-							clientWs.send(Buffer.from(buffer));
-						}
-					};
-				}
-			},
+			onMessage(event) {},
 			onClose: () => {
 				console.log('Connection to UI closed');
 			},
