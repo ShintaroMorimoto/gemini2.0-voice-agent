@@ -238,11 +238,6 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 							// this json also might be `contentUpdate { interrupted: true }`
 							// or contentUpdate { end_of_turn: true }
 						} else {
-							// ここにきてるのはわかった。
-							// responseはresponse { realtimeInput: { mediaChunks: [ [Object] ] } }というデータ。
-							// これはユーザーからのインプットだけど、
-							// ↓はモデルのレスポンスを受け取る処理になってしまっているのでは、、？
-							// 必要なのは、sendRealtimeInputの処理かも。
 							const chunks = (await JSON.parse(data.toString())).realtimeInput
 								.mediaChunks;
 
@@ -325,7 +320,6 @@ clientWs.on("open", () => {
 });
 
 clientWs.on("message", async (message) => {
-	console.log("serverWs in clientWs.on", serverWs);
 	const response: LiveIncomingMessage = (await JSON.parse(
 		message.toString(),
 	)) as LiveIncomingMessage;
@@ -351,16 +345,7 @@ clientWs.on("message", async (message) => {
 				p.inlineData?.mimeType.startsWith("audio/pcm"),
 			);
 			console.log("audioParts", audioParts);
-			// strip the audio parts out of the modelTurn
-			/*
-			const otherParts = difference(parts, audioParts);
-			console.log("otherParts", otherParts);
 
-			if (!otherParts.length) {
-				return;
-			}
-			parts = otherParts;
-			*/
 			const content: ModelTurn = { modelTurn: { parts: audioParts } };
 			console.log("server.send", "modelTurn");
 			console.log("content", content);
@@ -394,9 +379,6 @@ app.get(
 						}
 					};
 				}
-				// const json = JSON.stringify(data);
-				// clientWs.send(event.data);
-				// console.log("message to Gemini onMessage /ws", json);
 			},
 			onClose: () => {
 				console.log("Connection to UI closed");

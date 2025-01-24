@@ -146,8 +146,6 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	}
 
 	protected async receive(blob: Blob) {
-		console.log("ここにきてるの？");
-		console.log("receive", blob);
 		const response: LiveIncomingMessage = (await blobToJSON(
 			blob,
 		)) as LiveIncomingMessage;

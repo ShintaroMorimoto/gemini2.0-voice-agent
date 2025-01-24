@@ -53,9 +53,8 @@ export function useLiveAPI({
 		const onContent = (content: ServerContent) => {
 			console.log("onContentにきてるのか、、？", JSON.stringify(content));
 			console.log("type of content", typeof content);
-			// isModelTurnがfalseになっている。modelTurnが抜けているか。
-			// contentはこれ
-			// {"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm","data":"AA
+
+			// ここにはMotelTurnしか来ないので、Lintエラーは無視する
 			try {
 				const parsedContent = JSON.parse(content as string);
 				if (isModelTurn(parsedContent)) {
