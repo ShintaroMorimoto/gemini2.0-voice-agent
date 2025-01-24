@@ -361,8 +361,9 @@ clientWs.on("message", async (message) => {
 			}
 			parts = otherParts;
 			*/
-			const content: ModelTurn = { modelTurn: { parts } };
+			const content: ModelTurn = { modelTurn: { parts: audioParts } };
 			console.log("server.send", "modelTurn");
+			console.log("content", content);
 			serverWs.send(JSON.stringify(content));
 		}
 	}

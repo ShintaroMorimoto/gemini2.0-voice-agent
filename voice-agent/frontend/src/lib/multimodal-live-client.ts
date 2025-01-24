@@ -60,11 +60,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 
 	constructor({ url }: MultimodalLiveAPIClientConnection) {
 		super();
-		url =
-			url ||
-			// "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent";
-			"ws://localhost:3000/ws";
-		// url += `?key=${apiKey}`;
+		url = url || "ws://localhost:3000/ws";
 		this.url = url;
 		this.send = this.send.bind(this);
 	}
@@ -111,14 +107,6 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 
 				this.ws = ws;
 
-				/*
-				const setupMessage: SetupMessage = {
-					setup: this.config,
-				};
-				this._sendDirect(setupMessage);
-				this.log("client.send", "setup");
-				*/
-
 				ws.removeEventListener("error", onError);
 				ws.addEventListener("close", (ev: CloseEvent) => {
 					console.log(ev);
@@ -136,7 +124,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 					}
 					this.log(
 						`server.${ev.type}`,
-						`disconnected ${reason ? `with reason: ${reason}` : ``}`,
+						`disconnected ${reason ? `with reason: ${reason}` : ""}`,
 					);
 					this.emit("close", ev);
 				});
@@ -173,14 +161,6 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 			this.emit("toolcallcancellation", response.toolCallCancellation);
 			return;
 		}
-		/*
-		if (isSetupCompleteMessage(response)) {
-			this.log("server.send", "setupComplete");
-			console.log("setupComplete");
-			this.emit("setupcomplete");
-			return;
-		}
-		*/
 
 		// this json also might be `contentUpdate { interrupted: true }`
 		// or contentUpdate { end_of_turn: true }
