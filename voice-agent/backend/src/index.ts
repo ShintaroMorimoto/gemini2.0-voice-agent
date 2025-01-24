@@ -1,13 +1,13 @@
 import type {
 	Content,
 	GenerationConfig,
+	GenerativeContentBlob,
 	Part,
 	Tool,
 } from "@google/generative-ai";
 import { serve } from "@hono/node-server";
 import { GoogleAuth } from "google-auth-library";
 import { Hono } from "hono";
-
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import type { IncomingMessage } from "http";
 import type { Server } from "node:http";
@@ -36,6 +36,12 @@ export type SetupMessage = {
 	setup: LiveConfig;
 };
 
+export type RealtimeInputMessage = {
+	realtimeInput: {
+		mediaChunks: GenerativeContentBlob[];
+	};
+};
+
 export type ClientContentMessage = {
 	clientContent: {
 		turns: Content[];
@@ -57,6 +63,45 @@ export type ServerContent = ModelTurn | TurnComplete | Interrupted;
 export type ServerContentMessage = {
 	serverContent: ServerContent;
 };
+
+export type LiveIncomingMessage = ServerContentMessage;
+
+const prop = (a: any, prop: string, kind = "object") =>
+	typeof a === "object" && typeof a[prop] === "object";
+
+export const isServerContentMessage = (a: any): a is ServerContentMessage =>
+	prop(a, "serverContent");
+export const isModelTurn = (a: any): a is ModelTurn =>
+	typeof (a as ModelTurn).modelTurn === "object";
+
+export const isTurnComplete = (a: any): a is TurnComplete =>
+	typeof (a as TurnComplete).turnComplete === "boolean";
+
+export const isInterrupted = (a: any): a is Interrupted =>
+	(a as Interrupted).interrupted;
+
+export const blobToJSON = (blob: Blob) =>
+	new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => {
+			if (reader.result) {
+				const json = JSON.parse(reader.result as string);
+				resolve(json);
+			} else {
+				reject("Failed to read blob");
+			}
+		};
+		reader.readAsText(blob);
+	});
+
+export function base64ToArrayBuffer(base64: string) {
+	const binaryString = atob(base64);
+	const bytes = new Uint8Array(binaryString.length);
+	for (let i = 0; i < binaryString.length; i++) {
+		bytes[i] = binaryString.charCodeAt(i);
+	}
+	return bytes.buffer;
+}
 
 interface CloseEventInit extends EventInit {
 	code?: number;
@@ -98,6 +143,8 @@ export interface NodeWebSocketInit {
 	app: Hono;
 	baseUrl?: string | URL;
 }
+
+let serverWs: WebSocket;
 
 /**
  * Create WebSockets for Node.js
@@ -162,7 +209,7 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 				}
 				(async () => {
 					const events = await createEvents(c);
-					const serverWs = await nodeUpgradeWebSocket(c.env.incoming);
+					serverWs = await nodeUpgradeWebSocket(c.env.incoming);
 
 					const ctx: WSContext = {
 						binaryType: "arraybuffer",
@@ -184,15 +231,28 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 
 					events.onOpen?.(new Event("open"), ctx);
 
-					serverWs.on("message", (data, isBinary) => {
-						const datas = Array.isArray(data) ? data : [data];
-						for (const data of datas) {
-							events.onMessage?.(
-								new MessageEvent("message", {
-									data: isBinary ? data : data.toString("utf-8"),
-								}),
-								ctx,
-							);
+					serverWs.on("message", async (data, isBinary) => {
+						if (data instanceof Blob) {
+							console.log("received blob on message", data);
+
+							// this json also might be `contentUpdate { interrupted: true }`
+							// or contentUpdate { end_of_turn: true }
+						} else {
+							// ここにきてるのはわかった。
+							// responseはresponse { realtimeInput: { mediaChunks: [ [Object] ] } }というデータ。
+							// これはユーザーからのインプットだけど、
+							// ↓はモデルのレスポンスを受け取る処理になってしまっているのでは、、？
+							// 必要なのは、sendRealtimeInputの処理かも。
+							const chunks = (await JSON.parse(data.toString())).realtimeInput
+								.mediaChunks;
+
+							const realtimeInput: RealtimeInputMessage = {
+								realtimeInput: {
+									mediaChunks: chunks,
+								},
+							};
+
+							clientWs.send(JSON.stringify(realtimeInput));
 						}
 					});
 
@@ -215,7 +275,8 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 	};
 };
 
-const project = "genaipocctc";
+// const project = "genaipocctc";
+const project = "sandbox-morimoto-s1";
 const location = "us-central1";
 const version = "v1beta1";
 
@@ -254,7 +315,7 @@ clientWs.on("open", () => {
 				],
 			},
 			generationConfig: {
-				responseModalities: "text",
+				responseModalities: "audio",
 			},
 		},
 	};
@@ -263,8 +324,48 @@ clientWs.on("open", () => {
 	console.log("clientWs open");
 });
 
-clientWs.on("message", (message) => {
-	console.log("message from Gemini", message.toString());
+clientWs.on("message", async (message) => {
+	console.log("serverWs in clientWs.on", serverWs);
+	const response: LiveIncomingMessage = (await JSON.parse(
+		message.toString(),
+	)) as LiveIncomingMessage;
+	console.log("response from Gemini", response);
+	// this json also might be `contentUpdate { interrupted: true }`
+	// or contentUpdate { end_of_turn: true }
+	if (isServerContentMessage(response)) {
+		const { serverContent } = response;
+		console.log("serverContent", serverContent);
+		if (isInterrupted(serverContent)) {
+			console.log("receive.serverContent", "interrupted");
+			return;
+		}
+		if (isTurnComplete(serverContent)) {
+			console.log("receive.serverContent", "turnComplete");
+			//plausible theres more to the message, continue
+		}
+		if (isModelTurn(serverContent)) {
+			const parts: Part[] = serverContent.modelTurn.parts;
+			// when its audio that is returned for modelTurn
+			console.log("parts", parts);
+			const audioParts = parts.filter((p) =>
+				p.inlineData?.mimeType.startsWith("audio/pcm"),
+			);
+			console.log("audioParts", audioParts);
+			// strip the audio parts out of the modelTurn
+			/*
+			const otherParts = difference(parts, audioParts);
+			console.log("otherParts", otherParts);
+
+			if (!otherParts.length) {
+				return;
+			}
+			parts = otherParts;
+			*/
+			const content: ModelTurn = { modelTurn: { parts } };
+			console.log("server.send", "modelTurn");
+			serverWs.send(JSON.stringify(content));
+		}
+	}
 });
 
 clientWs.on("close", (message) => {
@@ -281,23 +382,20 @@ app.get(
 	upgradeWebSocket(() => {
 		return {
 			onMessage(event) {
-				const data: ClientContentMessage = {
-					clientContent: {
-						turns: [
-							{
-								parts: [
-									{
-										text: "Hello, How are you?",
-									},
-								],
-								role: "user",
-							},
-						],
-						turnComplete: true,
-					},
-				};
-				const json = JSON.stringify(data);
-				clientWs.send(json);
+				if (typeof event.data === "string") {
+					clientWs.send(event.data);
+				} else {
+					const reader = new FileReader();
+					reader.onload = () => {
+						const buffer = reader.result;
+						if (buffer instanceof ArrayBuffer) {
+							clientWs.send(Buffer.from(buffer));
+						}
+					};
+				}
+				// const json = JSON.stringify(data);
+				// clientWs.send(event.data);
+				// console.log("message to Gemini onMessage /ws", json);
 			},
 			onClose: () => {
 				console.log("Connection to UI closed");
