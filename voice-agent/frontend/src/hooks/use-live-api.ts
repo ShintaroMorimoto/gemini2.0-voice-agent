@@ -51,21 +51,18 @@ export function useLiveAPI({
 			audioStreamRef.current?.addPCM16(new Uint8Array(data));
 		};
 		const onContent = (content: ServerContent) => {
-			console.log("onContentにきてるのか、、？", JSON.stringify(content));
-			console.log("type of content", typeof content);
-
-			// ここにはMotelTurnしか来ないので、Lintエラーは無視する
 			try {
-				const parsedContent = JSON.parse(content as string);
-				if (isModelTurn(parsedContent)) {
-					console.log("isModelTurnだと認識されている？");
-					const audioParts = parsedContent.modelTurn.parts.filter((part) =>
-						part.inlineData?.mimeType.startsWith("audio/pcm"),
-					);
-					for (const part of audioParts) {
-						if (part.inlineData?.data) {
-							const audioData = base64ToArrayBuffer(part.inlineData.data);
-							audioStreamRef.current?.addPCM16(new Uint8Array(audioData));
+				if (typeof content === "string") {
+					const parsedContent = JSON.parse(content);
+					if (isModelTurn(parsedContent)) {
+						const audioParts = parsedContent.modelTurn.parts.filter((part) =>
+							part.inlineData?.mimeType.startsWith("audio/pcm"),
+						);
+						for (const part of audioParts) {
+							if (part.inlineData?.data) {
+								const audioData = base64ToArrayBuffer(part.inlineData.data);
+								audioStreamRef.current?.addPCM16(new Uint8Array(audioData));
+							}
 						}
 					}
 				}
