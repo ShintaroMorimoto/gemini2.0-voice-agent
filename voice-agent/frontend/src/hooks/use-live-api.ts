@@ -87,10 +87,6 @@ export function useLiveAPI({
 	}, [client]);
 
 	const connect = useCallback(async () => {
-		console.log("config", config);
-		if (!config) {
-			throw new Error("No config provided");
-		}
 		client.disconnect();
 		await client.connect(config);
 		setConnected(true);
