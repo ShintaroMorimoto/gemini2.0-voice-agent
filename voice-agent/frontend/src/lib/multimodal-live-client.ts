@@ -60,7 +60,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 
 	constructor({ url }: MultimodalLiveAPIClientConnection) {
 		super();
-		url = url || "ws://localhost:3000/ws";
+		url = url || "ws://localhost:8080/ws";
 		this.url = url;
 		this.send = this.send.bind(this);
 	}
@@ -146,6 +146,8 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	}
 
 	protected async receive(blob: Blob) {
+		// TODO: バックエンド側のindex.tsとまったく同じことやっているから、おそらくここは不要
+		// connect 関数の中のthis.emit("content", evt.data)で問題ないと思う
 		const response: LiveIncomingMessage = (await blobToJSON(
 			blob,
 		)) as LiveIncomingMessage;
