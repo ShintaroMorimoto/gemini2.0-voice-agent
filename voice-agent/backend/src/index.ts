@@ -272,6 +272,7 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 	};
 };
 
+// TODO: 環境変数から読むようにする
 const project = "sandbox-morimoto-s1";
 const location = "us-central1";
 const version = "v1beta1";
@@ -380,13 +381,16 @@ app.get(
 );
 
 if (process.env.NODE_ENV === "production") {
-	app.use("/static/*", serveStatic({ root: "./dist" }));
+	console.log("Current working directory:", process.cwd());
+
+	app.use("/*", serveStatic({ root: "./dist" }));
+	app.use("/*", serveStatic({ root: "./public" }));
 	app.route("/", app);
 
 	app.use(
 		"/favicon.ico",
 		serveStatic({
-			root: process.env.NODE_ENV === "production" ? "./dist" : "./public",
+			root: "./public",
 		}),
 	);
 
@@ -395,10 +399,11 @@ if (process.env.NODE_ENV === "production") {
 		port: 8080,
 		hostname: "0.0.0.0",
 	});
+
 	injectWebSocket(server);
 	console.log("Production Server is running on port 8080");
 } else {
 	const server = serve(app);
 	injectWebSocket(server);
-	console.log("Server is running on port 3000");
+	console.log("Local Server is running on port 3000");
 }

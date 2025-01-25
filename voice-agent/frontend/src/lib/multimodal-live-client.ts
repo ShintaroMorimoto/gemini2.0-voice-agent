@@ -146,6 +146,8 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	}
 
 	protected async receive(blob: Blob) {
+		// TODO: バックエンド側のindex.tsとまったく同じことやっているから、おそらくここは不要
+		// connect 関数の中のthis.emit("content", evt.data)で問題ないと思う
 		const response: LiveIncomingMessage = (await blobToJSON(
 			blob,
 		)) as LiveIncomingMessage;
