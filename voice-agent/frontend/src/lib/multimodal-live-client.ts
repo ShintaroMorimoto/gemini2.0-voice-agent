@@ -4,13 +4,13 @@ import type {
 	Part,
 } from "@google/generative-ai";
 import { EventEmitter } from "eventemitter3";
-import {
-	type ClientContentMessage,
-	type RealtimeInputMessage,
-	type ServerContent,
-	type ToolCall,
-	type ToolCallCancellation,
-	type ToolResponseMessage
+import type {
+	ClientContentMessage,
+	RealtimeInputMessage,
+	ServerContent,
+	ToolCall,
+	ToolCallCancellation,
+	ToolResponseMessage,
 } from "../../multimodal-live-types";
 
 /**
@@ -48,14 +48,12 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		this.send = this.send.bind(this);
 	}
 
-
 	connect(): Promise<boolean> {
-
 		const ws = new WebSocket(this.url);
 
 		ws.addEventListener("message", async (evt: MessageEvent) => {
-				this.emit("content", evt.data);
-				console.log("non blob message", evt);
+			this.emit("content", evt.data);
+			console.log("non blob message", evt);
 		});
 		return new Promise((resolve, reject) => {
 			const onError = () => {

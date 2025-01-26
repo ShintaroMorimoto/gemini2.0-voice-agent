@@ -2,7 +2,6 @@ import { Altair } from "./components/altair/altair";
 import ControlTray from "./components/control-tray/ControlTray";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 
-
 const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 const uri =
 	process.env.NODE_ENV === "production"
