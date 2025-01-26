@@ -5,7 +5,7 @@ const LiveAPIContext = createContext<UseLiveAPIResults | undefined>(undefined);
 
 export type LiveAPIProviderProps = {
 	children: ReactNode;
-	url?: string;
+	url: string;
 };
 
 export const LiveAPIProvider: FC<LiveAPIProviderProps> = ({
@@ -20,6 +20,8 @@ export const LiveAPIProvider: FC<LiveAPIProviderProps> = ({
 		</LiveAPIContext.Provider>
 	);
 };
+
+
 
 export const useLiveAPIContext = () => {
 	const context = useContext(LiveAPIContext);
