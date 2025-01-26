@@ -81,29 +81,6 @@ export const isTurnComplete = (a: any): a is TurnComplete =>
 export const isInterrupted = (a: any): a is Interrupted =>
 	(a as Interrupted).interrupted;
 
-export const blobToJSON = (blob: Blob) =>
-	new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			if (reader.result) {
-				const json = JSON.parse(reader.result as string);
-				resolve(json);
-			} else {
-				reject("Failed to read blob");
-			}
-		};
-		reader.readAsText(blob);
-	});
-
-export function base64ToArrayBuffer(base64: string) {
-	const binaryString = atob(base64);
-	const bytes = new Uint8Array(binaryString.length);
-	for (let i = 0; i < binaryString.length; i++) {
-		bytes[i] = binaryString.charCodeAt(i);
-	}
-	return bytes.buffer;
-}
-
 interface CloseEventInit extends EventInit {
 	code?: number;
 	reason?: string;
@@ -308,11 +285,16 @@ clientWs.on("open", () => {
 					{
 						text: "\
             		あなたはSIerの優秀なエンジニアです。\
-					クライアントがこれから作りたいシステムについて、あなたがヒアリングを行います。\
+					あなたはクライアントに対して、ヒアリングを行います。\
+					ヒアリング内容は、クライアントが作りたいと考えているシステムについてです。 \
             		以下が明確になるまで、ヒアリングを続けてください。\
             		- だれが使うシステムなのか \
             		- どんなときに使われるシステムなのか \
             		- どんな機能が必要なのか \
+					\
+					## ヒアリングルール \
+					- あいまいな点があった場合は深堀りして聞いてください。\
+					-  \
             		",
 					},
 				],
