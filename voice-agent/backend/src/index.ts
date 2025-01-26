@@ -1,3 +1,4 @@
+import { SpeechClient, protos } from "@google-cloud/speech";
 import type {
 	Content,
 	GenerationConfig,
@@ -226,6 +227,57 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 							};
 
 							clientWs.send(JSON.stringify(realtimeInput));
+
+							// TODO: チャンクをまとめて1リクエストで送る
+							for (const chunk of chunks) {
+								if (chunk.mimeType.includes("audio")) {
+									// Convert base64 to buffer
+									const audioBuffer = Buffer.from(chunk.data, "base64");
+									try {
+										const request = {
+											audio: {
+												content: audioBuffer,
+											},
+											config: {
+												encoding:
+													protos.google.cloud.speech.v1.RecognitionConfig
+														.AudioEncoding.LINEAR16,
+												sampleRateHertz: 16000,
+												languageCode: "ja-JP",
+											},
+											interimResults: false,
+										};
+
+										const speechClient = new SpeechClient();
+
+										const response = await speechClient.recognize(request);
+										console.log("response", response);
+										const [result] = response;
+										console.log("result", result);
+										const transcription = result.results
+											?.map(
+												(result: any) => result.alternatives?.[0]?.transcript,
+											)
+											.join("\n");
+										console.log("transcription", transcription);
+
+										if (transcription) {
+											console.log("transcription", transcription);
+											// Send transcription result back to client
+											/*
+											serverWs.send(
+												JSON.stringify({
+													type: "transcription",
+													text: transcription,
+												}),
+											);
+											*/
+										}
+									} catch (error) {
+										console.error("Speech-to-Text error:", error);
+									}
+								}
+							}
 						}
 					});
 
