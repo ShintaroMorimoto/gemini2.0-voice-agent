@@ -1,32 +1,33 @@
-import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
-import { type FunctionDeclaration, SchemaType } from '@google/generative-ai';
-import { memo, useEffect, useRef, useState } from 'react';
-import vegaEmbed from 'vega-embed';
-import type { ToolCall } from '../../../multimodal-live-types';
+import { useLiveAPIContext } from "@/contexts/LiveAPIContext";
+import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
+import { memo, useEffect, useRef, useState } from "react";
+import type { ToolCall } from "../../../multimodal-live-types";
+
+import vegaEmbed from "vega-embed";
 
 const declaration: FunctionDeclaration = {
-	name: 'render_altair',
-	description: 'Displays an altair graph in json format.',
+	name: "render_altair",
+	description: "Displays an altair graph in json format.",
 	parameters: {
 		type: SchemaType.OBJECT,
 		properties: {
 			json_graph: {
 				type: SchemaType.STRING,
 				description:
-					'JSON STRING representation of the graph to render. Must be a string, not a json object',
+					"JSON STRING representation of the graph to render. Must be a string, not a json object",
 			},
 		},
-		required: ['json_graph'],
+		required: ["json_graph"],
 	},
 };
 
 function AltairComponent() {
-	const [jsonString, setJSONString] = useState<string>('');
+	const [jsonString, setJSONString] = useState<string>("");
 	const { client } = useLiveAPIContext();
 
 	useEffect(() => {
 		const onToolCall = (toolCall: ToolCall) => {
-			console.log('got toolcall', toolCall);
+			console.log("got toolcall", toolCall);
 			const fc = toolCall.functionCalls.find(
 				(fc) => fc.name === declaration.name,
 			);
@@ -49,9 +50,9 @@ function AltairComponent() {
 				);
 			}
 		};
-		client.on('toolcall', onToolCall);
+		client.on("toolcall", onToolCall);
 		return () => {
-			client.off('toolcall', onToolCall);
+			client.off("toolcall", onToolCall);
 		};
 	}, [client]);
 

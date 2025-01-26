@@ -88,7 +88,7 @@ export function useLiveAPI({
 
 	const connect = useCallback(async () => {
 		client.disconnect();
-		await client.connect(config);
+		await client.connect();
 		setConnected(true);
 	}, [client, config]);
 

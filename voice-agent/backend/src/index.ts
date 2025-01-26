@@ -232,8 +232,7 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 
 					events.onOpen?.(new Event("open"), ctx);
 
-					// TODO: この処理はapp.get('/ws')の中にあるべきなのでは？
-					serverWs.on("message", async (data, isBinary) => {
+					serverWs.on("message", async (data) => {
 						if (data instanceof Blob) {
 							console.log("received blob on message", data);
 
@@ -372,7 +371,6 @@ app.get(
 	"/ws",
 	upgradeWebSocket(() => {
 		return {
-			onMessage(event) {},
 			onClose: () => {
 				console.log("Connection to UI closed");
 			},
