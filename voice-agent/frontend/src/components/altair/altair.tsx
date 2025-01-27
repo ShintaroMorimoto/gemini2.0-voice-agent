@@ -40,7 +40,7 @@ function AltairComponent() {
 			if (toolCall.functionCalls.length) {
 				setTimeout(
 					() =>
-						client.sendToolResponse({
+						client?.sendToolResponse({
 							functionResponses: toolCall.functionCalls.map((fc) => ({
 								response: { output: { success: true } },
 								id: fc.id,
@@ -50,9 +50,13 @@ function AltairComponent() {
 				);
 			}
 		};
-		client.on("toolcall", onToolCall);
+		if (client) {
+			client.on("toolcall", onToolCall);
+		}
 		return () => {
-			client.off("toolcall", onToolCall);
+			if (client) {
+				client.off("toolcall", onToolCall);
+			}
 		};
 	}, [client]);
 

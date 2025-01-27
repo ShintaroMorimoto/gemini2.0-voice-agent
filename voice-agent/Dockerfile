@@ -2,6 +2,8 @@ FROM node:20-alpine AS base
 
 FROM base AS builder
 
+RUN apk add --no-cache sox
+
 WORKDIR /app
 
 COPY backend/package*.json ./backend/
