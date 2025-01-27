@@ -22,7 +22,7 @@ function ControlTray({ children }: ControlTrayProps) {
 
 	useEffect(() => {
 		const onData = (base64: string) => {
-			client.sendRealtimeInput([
+			client?.sendRealtimeInput([
 				{
 					mimeType: "audio/pcm;rate=16000",
 					data: base64,

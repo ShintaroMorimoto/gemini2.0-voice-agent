@@ -241,3 +241,8 @@ export const isToolCallCancellation = (
 	a: unknown,
 ): a is ToolCallCancellationMessage["toolCallCancellation"] =>
 	typeof a === "object" && Array.isArray((a as any).ids);
+
+export type TranscriptionMessage = {
+	type: "transcription";
+	text: string;
+};

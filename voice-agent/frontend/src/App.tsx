@@ -1,3 +1,4 @@
+import { TranscriptionDisplay } from "./components/TranscriptionDisplay";
 import { Altair } from "./components/altair/altair";
 import ControlTray from "./components/control-tray/ControlTray";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
@@ -16,6 +17,7 @@ function App() {
 				<main>
 					<Altair />
 					<ControlTray />
+					<TranscriptionDisplay />
 				</main>
 			</LiveAPIProvider>
 		</>

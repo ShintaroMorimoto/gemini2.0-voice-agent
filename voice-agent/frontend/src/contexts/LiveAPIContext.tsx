@@ -1,21 +1,66 @@
-import { type UseLiveAPIResults, useLiveAPI } from "@/hooks/use-live-api";
-import { type FC, type ReactNode, createContext, useContext } from "react";
+import { useLiveAPI } from "@/hooks/use-live-api";
+import type { MultimodalLiveClient } from "@/lib/multimodal-live-client";
+import { type ReactNode, createContext, useContext, useState } from "react";
 
-const LiveAPIContext = createContext<UseLiveAPIResults | undefined>(undefined);
+export type LiveAPIContextType = {
+	client: MultimodalLiveClient | null;
+	connected: boolean;
+	transcriptionText: string;
+	setTranscriptionText: (text: string) => void;
+	connect: () => Promise<void>;
+	disconnect: () => Promise<void>;
+};
+
+export const LiveAPIContext = createContext<LiveAPIContextType>({
+	client: null,
+	connected: false,
+	transcriptionText: "",
+	setTranscriptionText: () => {},
+	connect: async () => {},
+	disconnect: async () => {},
+});
 
 export type LiveAPIProviderProps = {
 	children: ReactNode;
 	url: string;
 };
 
-export const LiveAPIProvider: FC<LiveAPIProviderProps> = ({
+export const LiveAPIProvider: React.FC<LiveAPIProviderProps> = ({
 	children,
 	url,
 }) => {
-	const liveAPI = useLiveAPI({ url });
+	const [connected, setConnected] = useState(false);
+	const [transcriptionText, setTranscriptionText] = useState("");
+	const {
+		client,
+		connect: connectClient,
+		disconnect: disconnectClient,
+	} = useLiveAPI({
+		url,
+		setTranscriptionText,
+	});
+
+	const connect = async () => {
+		await connectClient();
+		setConnected(true);
+	};
+
+	const disconnect = async () => {
+		await disconnectClient();
+		setConnected(false);
+	};
 
 	return (
-		<LiveAPIContext.Provider value={liveAPI}>
+		<LiveAPIContext.Provider
+			value={{
+				client,
+				connected,
+				transcriptionText,
+				setTranscriptionText,
+				connect,
+				disconnect,
+			}}
+		>
 			{children}
 		</LiveAPIContext.Provider>
 	);
