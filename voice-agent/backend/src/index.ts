@@ -73,6 +73,7 @@ type AudioState = {
 	isRecording: boolean;
 	buffer: Buffer[];
 	silenceCount: number;
+	isProcessing: boolean;
 };
 
 // 音声処理の状態管理
@@ -80,10 +81,11 @@ const audioState: AudioState = {
 	isRecording: false,
 	buffer: [],
 	silenceCount: 0,
+	isProcessing: false,
 };
 
 // 音声検出の設定値
-const SILENCE_THRESHOLD = 700; // 閾値を大幅に引き上げ
+const SILENCE_THRESHOLD = 700; // これ以上のRMS値があれば音声と判断
 const MIN_SILENCE_FRAMES = 10; // 無音判定に必要な連続フレーム数
 const MIN_VOICE_FRAMES = 5; // ノイズ除去のための最小発話フレーム数
 
@@ -108,11 +110,13 @@ const resetAudioState = () => {
 	audioState.isRecording = false;
 	audioState.buffer = [];
 	audioState.silenceCount = 0;
+	audioState.isProcessing = false;
 };
 
 // Speech-to-Text処理
 const processSpeechToText = async (audioBuffer: Buffer) => {
 	try {
+		audioState.isProcessing = true;
 		const request = {
 			audio: {
 				content: audioBuffer,
@@ -147,6 +151,9 @@ const processSpeechToText = async (audioBuffer: Buffer) => {
 		} else {
 			console.error("Speech-to-Text error:", error);
 		}
+	} finally {
+		resetAudioState();
+		console.log("Audio state reset after processing");
 	}
 };
 
@@ -296,71 +303,94 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 						if (data instanceof Blob) {
 							console.log("received blob on message", data);
 						} else {
-							const chunks = (await JSON.parse(data.toString())).realtimeInput
-								.mediaChunks;
+							try {
+								const parsedData = await JSON.parse(data.toString());
 
-							const realtimeInput: RealtimeInputMessage = {
-								realtimeInput: {
-									mediaChunks: chunks,
-								},
-							};
+								// Vertex AIからの応答の場合
+								if (isServerContentMessage(parsedData)) {
+									clientWs.send(JSON.stringify(parsedData));
+									return;
+								}
 
-							clientWs.send(JSON.stringify(realtimeInput));
+								// 音声データの場合
+								if (parsedData.realtimeInput?.mediaChunks) {
+									const chunks = parsedData.realtimeInput.mediaChunks;
 
-							// 各チャンクに対して音声検出処理を実行
-							for (const chunk of chunks) {
-								try {
-									if (
-										!chunk ||
-										typeof chunk !== "object" ||
-										!("data" in chunk) ||
-										!("mimeType" in chunk)
-									) {
-										console.log("Invalid chunk format:", chunk);
-										continue;
-									}
+									// Vertex AIに音声データを転送
+									const realtimeInput: RealtimeInputMessage = {
+										realtimeInput: {
+											mediaChunks: chunks,
+										},
+									};
+									clientWs.send(JSON.stringify(realtimeInput));
 
-									// PCMデータのレートを確認
-									if (!chunk.mimeType.includes("audio/pcm")) {
-										console.log("Unsupported audio format:", chunk.mimeType);
-										continue;
-									}
-
-									const buffer = Buffer.from(chunk.data, "base64");
-									const isVoiceActive = detectVoiceActivity(buffer);
-
-									if (isVoiceActive) {
-										// 音声検出時の処理
-										audioState.silenceCount = 0;
-										audioState.buffer.push(buffer);
-										audioState.isRecording = true;
-										console.log("Voice activity detected");
-									} else if (audioState.isRecording) {
-										// 無音検出時の処理
-										audioState.silenceCount++;
-										audioState.buffer.push(buffer);
+									// 音声処理中は新しいチャンクの処理を開始しない
+									if (audioState.isProcessing) {
 										console.log(
-											"Silence detected, count:",
-											audioState.silenceCount,
+											"Skipping chunks - audio processing in progress",
 										);
+										return;
+									}
 
-										// 一定期間無音が続いた場合、音声処理を実行
-										if (audioState.silenceCount >= MIN_SILENCE_FRAMES) {
-											if (audioState.buffer.length > MIN_VOICE_FRAMES) {
-												console.log("Processing accumulated audio...");
-												const combinedBuffer = Buffer.concat(audioState.buffer);
-												// Speech-to-Textに送信
-												await processSpeechToText(combinedBuffer);
+									// 各チャンクに対して音声検出処理を実行
+									for (const chunk of chunks) {
+										try {
+											if (
+												!chunk ||
+												typeof chunk !== "object" ||
+												!("data" in chunk) ||
+												!("mimeType" in chunk)
+											) {
+												console.log("Invalid chunk format:", chunk);
+												continue;
 											}
-											// 状態をリセット
+
+											if (!chunk.mimeType.includes("audio/pcm")) {
+												console.log(
+													"Unsupported audio format:",
+													chunk.mimeType,
+												);
+												continue;
+											}
+
+											const buffer = Buffer.from(chunk.data, "base64");
+											const isVoiceActive = detectVoiceActivity(buffer);
+
+											if (isVoiceActive) {
+												audioState.silenceCount = 0;
+												audioState.buffer.push(buffer);
+												audioState.isRecording = true;
+												console.log("Voice activity detected");
+											} else if (audioState.isRecording) {
+												audioState.silenceCount++;
+												audioState.buffer.push(buffer);
+												console.log(
+													"Silence detected, count:",
+													audioState.silenceCount,
+												);
+
+												if (audioState.silenceCount >= MIN_SILENCE_FRAMES) {
+													if (audioState.buffer.length > MIN_VOICE_FRAMES) {
+														console.log("Processing accumulated audio...");
+														const combinedBuffer = Buffer.concat(
+															audioState.buffer,
+														);
+														await processSpeechToText(combinedBuffer);
+													} else {
+														resetAudioState();
+														console.log("Audio too short, reset state");
+													}
+													break;
+												}
+											}
+										} catch (error) {
+											console.error("Error processing chunk:", error);
 											resetAudioState();
-											console.log("Audio state reset");
 										}
 									}
-								} catch (error) {
-									console.error("Error processing chunk:", error);
-									continue;
 								}
+							} catch (error) {
+								console.error("Error parsing WebSocket message:", error);
 							}
 						}
 					});
