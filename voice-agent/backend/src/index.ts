@@ -124,7 +124,7 @@ export interface NodeWebSocketInit {
 }
 
 let serverWs: WebSocket;
-
+const speechClient = new SpeechClient();
 /**
  * Create WebSockets for Node.js
  * @param init Options
@@ -229,42 +229,43 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 							clientWs.send(JSON.stringify(realtimeInput));
 
 							// TODO: チャンクをまとめて1リクエストで送る
+							let combinedChunk = "";
+
 							for (const chunk of chunks) {
-								if (chunk.mimeType.includes("audio")) {
-									// Convert base64 to buffer
-									const audioBuffer = Buffer.from(chunk.data, "base64");
-									try {
-										const request = {
-											audio: {
-												content: audioBuffer,
-											},
-											config: {
-												encoding:
-													protos.google.cloud.speech.v1.RecognitionConfig
-														.AudioEncoding.LINEAR16,
-												sampleRateHertz: 16000,
-												languageCode: "ja-JP",
-											},
-											interimResults: false,
-										};
+								combinedChunk += chunk;
+							}
+							console.log("combinedChunk", combinedChunk);
 
-										const speechClient = new SpeechClient();
+							// Convert base64 to buffer
+							const audioBuffer = Buffer.from(combinedChunk, "base64");
+							try {
+								const request = {
+									audio: {
+										content: audioBuffer,
+									},
+									config: {
+										encoding:
+											protos.google.cloud.speech.v1.RecognitionConfig
+												.AudioEncoding.LINEAR16,
+										sampleRateHertz: 16000,
+										languageCode: "ja-JP",
+									},
+									interimResults: false,
+								};
 
-										const response = await speechClient.recognize(request);
-										console.log("response", response);
-										const [result] = response;
-										console.log("result", result);
-										const transcription = result.results
-											?.map(
-												(result: any) => result.alternatives?.[0]?.transcript,
-											)
-											.join("\n");
-										console.log("transcription", transcription);
+								// const speechClient = new SpeechClient();
 
-										if (transcription) {
-											console.log("transcription", transcription);
-											// Send transcription result back to client
-											/*
+								const response = await speechClient.recognize(request);
+								const [result] = response;
+								console.log("result.results", result.results);
+								const transcription = result.results
+									?.map((result: any) => result.alternatives?.[0]?.transcript)
+									.join("\n");
+
+								if (transcription) {
+									console.log("transcription", transcription);
+									// Send transcription result back to client
+									/*
 											serverWs.send(
 												JSON.stringify({
 													type: "transcription",
@@ -272,11 +273,9 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 												}),
 											);
 											*/
-										}
-									} catch (error) {
-										console.error("Speech-to-Text error:", error);
-									}
 								}
+							} catch (error) {
+								console.error("Speech-to-Text error:", error);
 							}
 						}
 					});
@@ -369,7 +368,6 @@ clientWs.on("message", async (message) => {
 	// or contentUpdate { end_of_turn: true }
 	if (isServerContentMessage(response)) {
 		const { serverContent } = response;
-		console.log("serverContent", serverContent);
 		if (isInterrupted(serverContent)) {
 			console.log("receive.serverContent", "interrupted");
 			return;
