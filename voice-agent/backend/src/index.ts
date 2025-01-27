@@ -68,6 +68,88 @@ export type ServerContentMessage = {
 
 export type LiveIncomingMessage = ServerContentMessage;
 
+// 音声処理の状態管理用の型定義
+type AudioState = {
+	isRecording: boolean;
+	buffer: Buffer[];
+	silenceCount: number;
+};
+
+// 音声処理の状態管理
+const audioState: AudioState = {
+	isRecording: false,
+	buffer: [],
+	silenceCount: 0,
+};
+
+// 音声検出の設定値
+const SILENCE_THRESHOLD = 700; // 閾値を大幅に引き上げ
+const MIN_SILENCE_FRAMES = 10; // 無音判定に必要な連続フレーム数
+const MIN_VOICE_FRAMES = 5; // ノイズ除去のための最小発話フレーム数
+
+// 音声活性検出
+const detectVoiceActivity = (buffer: Buffer): boolean => {
+	// 16ビットPCMとして解釈
+	const samples = new Int16Array(buffer.buffer);
+
+	// RMS（二乗平均平方根）を計算
+	const rms = Math.sqrt(
+		samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length,
+	);
+
+	// RMS値をログ出力
+	console.log("Current RMS value:", rms);
+
+	return rms > SILENCE_THRESHOLD;
+};
+
+// 音声処理状態のリセット
+const resetAudioState = () => {
+	audioState.isRecording = false;
+	audioState.buffer = [];
+	audioState.silenceCount = 0;
+};
+
+// Speech-to-Text処理
+const processSpeechToText = async (audioBuffer: Buffer) => {
+	try {
+		const request = {
+			audio: {
+				content: audioBuffer,
+			},
+			config: {
+				encoding:
+					protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding
+						.LINEAR16,
+				sampleRateHertz: 16000,
+				languageCode: "ja-JP",
+			},
+			interimResults: false,
+		};
+
+		const [response] = await speechClient.recognize(request);
+		const transcription = response.results
+			?.map((result) => result.alternatives?.[0]?.transcript)
+			.join("\n");
+
+		if (transcription) {
+			console.log("transcription", transcription);
+			serverWs.send(
+				JSON.stringify({
+					type: "transcription",
+					text: transcription,
+				}),
+			);
+		}
+	} catch (error) {
+		if (error instanceof Error) {
+			console.error("Speech-to-Text error:", error.message);
+		} else {
+			console.error("Speech-to-Text error:", error);
+		}
+	}
+};
+
 const prop = (a: any, prop: string, kind = "object") =>
 	typeof a === "object" && typeof a[prop] === "object";
 
@@ -213,9 +295,6 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 					serverWs.on("message", async (data) => {
 						if (data instanceof Blob) {
 							console.log("received blob on message", data);
-
-							// this json also might be `contentUpdate { interrupted: true }`
-							// or contentUpdate { end_of_turn: true }
 						} else {
 							const chunks = (await JSON.parse(data.toString())).realtimeInput
 								.mediaChunks;
@@ -228,54 +307,60 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 
 							clientWs.send(JSON.stringify(realtimeInput));
 
-							// TODO: チャンクをまとめて1リクエストで送る
-							let combinedChunk = "";
-
+							// 各チャンクに対して音声検出処理を実行
 							for (const chunk of chunks) {
-								combinedChunk += chunk;
-							}
-							console.log("combinedChunk", combinedChunk);
+								try {
+									if (
+										!chunk ||
+										typeof chunk !== "object" ||
+										!("data" in chunk) ||
+										!("mimeType" in chunk)
+									) {
+										console.log("Invalid chunk format:", chunk);
+										continue;
+									}
 
-							// Convert base64 to buffer
-							const audioBuffer = Buffer.from(combinedChunk, "base64");
-							try {
-								const request = {
-									audio: {
-										content: audioBuffer,
-									},
-									config: {
-										encoding:
-											protos.google.cloud.speech.v1.RecognitionConfig
-												.AudioEncoding.LINEAR16,
-										sampleRateHertz: 16000,
-										languageCode: "ja-JP",
-									},
-									interimResults: false,
-								};
+									// PCMデータのレートを確認
+									if (!chunk.mimeType.includes("audio/pcm")) {
+										console.log("Unsupported audio format:", chunk.mimeType);
+										continue;
+									}
 
-								// const speechClient = new SpeechClient();
+									const buffer = Buffer.from(chunk.data, "base64");
+									const isVoiceActive = detectVoiceActivity(buffer);
 
-								const response = await speechClient.recognize(request);
-								const [result] = response;
-								console.log("result.results", result.results);
-								const transcription = result.results
-									?.map((result: any) => result.alternatives?.[0]?.transcript)
-									.join("\n");
+									if (isVoiceActive) {
+										// 音声検出時の処理
+										audioState.silenceCount = 0;
+										audioState.buffer.push(buffer);
+										audioState.isRecording = true;
+										console.log("Voice activity detected");
+									} else if (audioState.isRecording) {
+										// 無音検出時の処理
+										audioState.silenceCount++;
+										audioState.buffer.push(buffer);
+										console.log(
+											"Silence detected, count:",
+											audioState.silenceCount,
+										);
 
-								if (transcription) {
-									console.log("transcription", transcription);
-									// Send transcription result back to client
-									/*
-											serverWs.send(
-												JSON.stringify({
-													type: "transcription",
-													text: transcription,
-												}),
-											);
-											*/
+										// 一定期間無音が続いた場合、音声処理を実行
+										if (audioState.silenceCount >= MIN_SILENCE_FRAMES) {
+											if (audioState.buffer.length > MIN_VOICE_FRAMES) {
+												console.log("Processing accumulated audio...");
+												const combinedBuffer = Buffer.concat(audioState.buffer);
+												// Speech-to-Textに送信
+												await processSpeechToText(combinedBuffer);
+											}
+											// 状態をリセット
+											resetAudioState();
+											console.log("Audio state reset");
+										}
+									}
+								} catch (error) {
+									console.error("Error processing chunk:", error);
+									continue;
 								}
-							} catch (error) {
-								console.error("Speech-to-Text error:", error);
 							}
 						}
 					});
