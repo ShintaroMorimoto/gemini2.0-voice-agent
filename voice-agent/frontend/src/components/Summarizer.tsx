@@ -1,27 +1,25 @@
 import { useLiveAPIContext } from "@/contexts/LiveAPIContext";
 import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
 import { memo, useEffect, useRef, useState } from "react";
-import type { ToolCall } from "../../../multimodal-live-types";
-
-import vegaEmbed from "vega-embed";
+import type { ToolCall } from "../../multimodal-live-types";
 
 const declaration: FunctionDeclaration = {
-	name: "render_altair",
-	description: "Displays an altair graph in json format.",
+	name: "summarize",
+	description: "Summarize the conversation.",
 	parameters: {
 		type: SchemaType.OBJECT,
 		properties: {
-			json_graph: {
+			summary: {
 				type: SchemaType.STRING,
 				description:
-					"JSON STRING representation of the graph to render. Must be a string, not a json object",
+					"Summary of the conversation. Must be a string, not a json object",
 			},
 		},
-		required: ["json_graph"],
+		required: ["summary"],
 	},
 };
 
-function AltairComponent() {
+function SummarizerComponent() {
 	const [jsonString, setJSONString] = useState<string>("");
 	const { client } = useLiveAPIContext();
 
@@ -70,4 +68,4 @@ function AltairComponent() {
 	return <div className="vega-embed" ref={embedRef} />;
 }
 
-export const Altair = memo(AltairComponent);
+export const Summarizer = memo(SummarizerComponent);
