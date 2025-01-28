@@ -471,12 +471,11 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 };
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 const project = process.env.PROJECT;
 const location = process.env.LOCATION;
 const version = process.env.VERSION;
-console.log("project", project);
 
 const auth = new GoogleAuth({
 	scopes: ["https://www.googleapis.com/auth/cloud-platform"],
