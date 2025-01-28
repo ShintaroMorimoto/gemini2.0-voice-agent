@@ -8,14 +8,16 @@ import type {
 } from "@google/generative-ai";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import * as dotenv from "dotenv";
 import { GoogleAuth } from "google-auth-library";
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import type { IncomingMessage } from "http";
 import type { Server } from "node:http";
 import type { Http2SecureServer, Http2Server } from "node:http2";
+import path from "path";
+import { fileURLToPath } from "url";
 import WebSocket, { WebSocketServer } from "ws";
-
 export type LiveGenerationConfig = GenerationConfig & {
 	responseModalities: "text" | "audio" | "image";
 	speechConfig?: {
@@ -467,11 +469,14 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 			},
 	};
 };
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-// TODO: 環境変数から読むようにする
-const project = "sandbox-morimoto-s1";
-const location = "us-central1";
-const version = "v1beta1";
+const project = process.env.PROJECT;
+const location = process.env.LOCATION;
+const version = process.env.VERSION;
+console.log("project", project);
 
 const auth = new GoogleAuth({
 	scopes: ["https://www.googleapis.com/auth/cloud-platform"],
@@ -539,6 +544,14 @@ clientWs.on("message", async (message) => {
 
 		if (isInterrupted(serverContent)) {
 			console.log("receive.serverContent", "interrupted");
+			// interruptedイベント時に音声認識を実行してからバッファをクリア
+			if (vertexAudioState.buffer.length > 0) {
+				console.log("Processing accumulated Vertex AI audio at interrupt");
+				console.log("Buffer size:", vertexAudioState.buffer.length);
+				const combinedBuffer = Buffer.concat(vertexAudioState.buffer);
+				console.log("Combined buffer size:", combinedBuffer.length);
+				await processVertexAIAudioToText(combinedBuffer);
+			}
 			vertexAudioState.buffer = []; // バッファをクリア
 			return;
 		}

@@ -70,9 +70,12 @@ export function useLiveAPI({
 							}
 						}
 					} else if (parsedContent.type === "transcription") {
-						setTranscriptionText(
-							(prevText) => `${prevText}/nあなた：${parsedContent.text}`,
-						);
+						setTranscriptionText((prevText) => {
+							if (parsedContent.text.trim().startsWith("AI：")) {
+								return `${prevText}\n${parsedContent.text}\n`;
+							}
+							return `${prevText}\nあなた：${parsedContent.text}`;
+						});
 					}
 				}
 			} catch (error) {
