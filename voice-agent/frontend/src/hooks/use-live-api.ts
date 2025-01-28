@@ -22,7 +22,12 @@ export type UseLiveAPIResults = {
 
 export function useLiveAPI({
 	url,
-}: MultimodalLiveAPIClientConnection): UseLiveAPIResults {
+	setTranscriptionText,
+}: MultimodalLiveAPIClientConnection & {
+	setTranscriptionText: (
+		text: string | ((prevState: string) => string),
+	) => void;
+}): UseLiveAPIResults {
 	const client = useMemo(() => new MultimodalLiveClient({ url }), [url]);
 	const audioStreamRef = useRef<AudioStreamer | null>(null);
 
@@ -64,6 +69,13 @@ export function useLiveAPI({
 								audioStreamRef.current?.addPCM16(new Uint8Array(audioData));
 							}
 						}
+					} else if (parsedContent.type === "transcription") {
+						setTranscriptionText((prevText) => {
+							if (parsedContent.text.trim().startsWith("AI：")) {
+								return `${prevText}\n${parsedContent.text}\n`;
+							}
+							return `${prevText}\nあなた：${parsedContent.text}`;
+						});
 					}
 				}
 			} catch (error) {
@@ -84,13 +96,13 @@ export function useLiveAPI({
 				.off("audio", onAudio)
 				.off("content", onContent);
 		};
-	}, [client]);
+	}, [client, setTranscriptionText]);
 
 	const connect = useCallback(async () => {
 		client.disconnect();
 		await client.connect();
 		setConnected(true);
-	}, [client, config]);
+	}, [client]);
 
 	const disconnect = useCallback(async () => {
 		client.disconnect();

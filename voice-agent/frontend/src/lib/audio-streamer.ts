@@ -1,7 +1,7 @@
 import {
 	createWorkletFromSrc,
 	registeredWorklets,
-} from './audio-worklet-registry';
+} from "./audio-worklet-registry";
 
 export class AudioStreamer {
 	public audioQueue: Float32Array[] = [];
@@ -84,7 +84,6 @@ export class AudioStreamer {
 			this.audioQueue.push(buffer);
 			this.processingBuffer = this.processingBuffer.slice(this.bufferSize);
 		}
-		console.log('isPlaying', this.isPlaying);
 
 		if (!this.isPlaying) {
 			this.isPlaying = true;
@@ -104,7 +103,6 @@ export class AudioStreamer {
 
 	private scheduleNextBuffer() {
 		const SCHEDULE_AHEAD_TIME = 0.2;
-		console.log('this.audioQueue.length', this.audioQueue.length);
 
 		while (
 			this.audioQueue.length > 0 &&
@@ -217,7 +215,7 @@ export class AudioStreamer {
 	}
 
 	async resume() {
-		if (this.context.state === 'suspended') {
+		if (this.context.state === "suspended") {
 			await this.context.resume();
 		}
 
