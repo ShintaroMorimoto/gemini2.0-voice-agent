@@ -53,7 +53,6 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 
 		ws.addEventListener("message", async (evt: MessageEvent) => {
 			this.emit("content", evt.data);
-			console.log("non blob message", evt);
 		});
 		return new Promise((resolve, reject) => {
 			const onError = () => {

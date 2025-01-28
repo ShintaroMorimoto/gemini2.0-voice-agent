@@ -24,7 +24,9 @@ export function useLiveAPI({
 	url,
 	setTranscriptionText,
 }: MultimodalLiveAPIClientConnection & {
-	setTranscriptionText: (text: string) => void;
+	setTranscriptionText: (
+		text: string | ((prevState: string) => string),
+	) => void;
 }): UseLiveAPIResults {
 	const client = useMemo(() => new MultimodalLiveClient({ url }), [url]);
 	const audioStreamRef = useRef<AudioStreamer | null>(null);
@@ -68,7 +70,9 @@ export function useLiveAPI({
 							}
 						}
 					} else if (parsedContent.type === "transcription") {
-						setTranscriptionText(parsedContent.text);
+						setTranscriptionText(
+							(prevText) => `${prevText}/nあなた：${parsedContent.text}`,
+						);
 					}
 				}
 			} catch (error) {

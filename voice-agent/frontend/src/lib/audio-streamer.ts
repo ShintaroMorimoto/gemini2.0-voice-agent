@@ -84,7 +84,6 @@ export class AudioStreamer {
 			this.audioQueue.push(buffer);
 			this.processingBuffer = this.processingBuffer.slice(this.bufferSize);
 		}
-		console.log("isPlaying", this.isPlaying);
 
 		if (!this.isPlaying) {
 			this.isPlaying = true;
