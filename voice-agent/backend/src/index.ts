@@ -1,11 +1,13 @@
 import { SpeechClient, protos } from "@google-cloud/speech";
 import type {
 	Content,
+	FunctionCall,
 	GenerationConfig,
 	GenerativeContentBlob,
 	Part,
 	Tool,
 } from "@google/generative-ai";
+import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import * as dotenv from "dotenv";
@@ -68,8 +70,39 @@ export type ServerContentMessage = {
 	serverContent: ServerContent;
 };
 
-export type LiveIncomingMessage = ServerContentMessage;
+export type LiveFunctionCall = FunctionCall & {
+	id: string;
+};
 
+export type ToolCall = {
+	functionCalls: LiveFunctionCall[];
+};
+
+export type ToolCallCancellationMessage = {
+	toolCallCancellation: {
+		ids: string[];
+	};
+};
+
+export type ToolCallCancellation =
+	ToolCallCancellationMessage["toolCallCancellation"];
+
+export type ToolCallMessage = {
+	toolCall: ToolCall;
+};
+export type LiveIncomingMessage =
+	ServerContentMessage | ToolCallCancellationMessage | ToolCallMessage;
+
+export type LiveFunctionResponse = {
+		response: object;
+		id: string;
+	};
+
+export type ToolResponseMessage = {
+		toolResponse: {
+			functionResponses: LiveFunctionResponse[];
+		};
+	};
 // 音声処理の状態管理用の型定義
 type AudioState = {
 	isRecording: boolean;
@@ -214,7 +247,7 @@ const detectVoiceActivity = (buffer: Buffer): boolean => {
 	);
 
 	// RMS値をログ出力
-	console.log("Current RMS value:", rms);
+	// console.log("Current RMS value:", rms);
 
 	return rms > SILENCE_THRESHOLD;
 };
@@ -224,6 +257,24 @@ const prop = (a: any, prop: string, kind = "object") =>
 
 export const isServerContentMessage = (a: any): a is ServerContentMessage =>
 	prop(a, "serverContent");
+
+export const isToolResponseMessage = (a: unknown): a is ToolResponseMessage =>
+	prop(a, "toolResponse");
+
+export const isToolCallMessage = (a: any): a is ToolCallMessage =>
+	prop(a, "toolCall");
+
+export const isToolCallCancellation = (
+	a: unknown,
+): a is ToolCallCancellationMessage["toolCallCancellation"] =>
+	typeof a === "object" && Array.isArray((a as any).ids);
+
+	export const isToolCallCancellationMessage = (
+	a: unknown,
+): a is ToolCallCancellationMessage =>
+	prop(a, "toolCallCancellation") &&
+	isToolCallCancellation((a as any).toolCallCancellation);
+
 export const isModelTurn = (a: any): a is ModelTurn =>
 	typeof (a as ModelTurn).modelTurn === "object";
 
@@ -476,6 +527,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 const project = process.env.PROJECT;
 const location = process.env.LOCATION;
 const version = process.env.VERSION;
+console.log("project", project);
 
 const auth = new GoogleAuth({
 	scopes: ["https://www.googleapis.com/auth/cloud-platform"],
@@ -499,6 +551,55 @@ const clientWs = new WebSocket(
 	},
 );
 
+const summarize = async (conversation_history: string) => {
+	const project = "sandbox-morimoto-s1";
+	const location = "us-central1";
+	const apiHost = `${location}-aiplatform.googleapis.com`;
+	const modelId = "gemini-2.0-flash-exp";
+	const apiEndpoint = `${apiHost}/projects/${project}/locations/${location}/publishers/google/models/${modelId}`;
+
+	const query = `\
+		以下の文章を要約してください。\
+		${conversation_history}`;
+
+	const data = {
+		contents: {
+			role: "USER",
+			parts: { text: query },
+		},
+		generation_config: {
+			response_modalities: "TEXT",
+		},
+	};
+	try {
+		const result = await fetch(`https://${apiEndpoint}:generateContent`, {
+			headers: {
+				"Content-Type": "application/json",
+		},
+		method: "POST",
+		body: JSON.stringify(data),
+		});
+		console.log("result", result);
+	} catch (error) {
+		console.error("Error fetching summarize:", error);
+}
+};
+
+const summarizeFunctionDeclaration: FunctionDeclaration = {
+	name: "summarize",
+	description: "Summarize the conversation.",
+	parameters: {
+		type: SchemaType.OBJECT,
+		properties: {
+			conversation_history: {
+				type: SchemaType.STRING,
+				description:
+					"Conversation history of AI and user. Must be a string, not a json object",
+			},
+		},
+		required: ["conversation_history"],
+	},
+};
 clientWs.on("open", () => {
 	// SetupMessage
 	const data: SetupMessage = {
@@ -516,16 +617,19 @@ clientWs.on("open", () => {
             		- どんなときに使われるシステムなのか \
             		- どんな機能が必要なのか \
 					\
-					## ヒアリングルール \
-					- あいまいな点があった場合は深堀りして聞いてください。\
-					-  \
-            		",
+					## ヒアリングで意識してほしい点 \
+					- 「なぜそれが必要か？」「どうしてそのとき使われるのか？」といった、目的を意識して、深堀り質問をしてください。\
+            		\
+					## ツールの使用 \
+					- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。\
+					",
 					},
 				],
 			},
 			generationConfig: {
 				responseModalities: "audio",
 			},
+			tools: [{ functionDeclarations: [summarizeFunctionDeclaration] }],
 		},
 	};
 	const json = JSON.stringify(data);
@@ -537,6 +641,28 @@ clientWs.on("message", async (message) => {
 	const response: LiveIncomingMessage = (await JSON.parse(
 		message.toString(),
 	)) as LiveIncomingMessage;
+
+	if (isToolCallMessage(response)) {
+		console.log("toolCallMessage", response);
+		const fc = response.toolCall.functionCalls.find(
+			(fc) => fc.name === summarizeFunctionDeclaration.name,
+		);
+		if (fc) {
+			const str = (fc.args as any).conversation_history;
+			const summary = await summarize(str);
+			console.log("summary", summary);
+		}
+		// send data for the response of your tool call
+		// in this case Im just saying it was successful
+
+		return;
+
+	}
+	if (isToolCallCancellationMessage(response)) {
+		// TODO: ここの処理も作る必要あり
+		// toolcallがキャンセルされたときの処理
+		return;
+	}
 
 	if (isServerContentMessage(response)) {
 		const { serverContent } = response;
@@ -639,3 +765,4 @@ if (process.env.NODE_ENV === "production") {
 	injectWebSocket(server);
 	console.log("Local Server is running on port 3000");
 }
+

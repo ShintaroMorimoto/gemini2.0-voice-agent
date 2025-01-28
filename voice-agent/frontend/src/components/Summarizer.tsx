@@ -1,23 +1,6 @@
 import { useLiveAPIContext } from "@/contexts/LiveAPIContext";
-import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
 import { memo, useEffect, useRef, useState } from "react";
 import type { ToolCall } from "../../multimodal-live-types";
-
-const declaration: FunctionDeclaration = {
-	name: "summarize",
-	description: "Summarize the conversation.",
-	parameters: {
-		type: SchemaType.OBJECT,
-		properties: {
-			summary: {
-				type: SchemaType.STRING,
-				description:
-					"Summary of the conversation. Must be a string, not a json object",
-			},
-		},
-		required: ["summary"],
-	},
-};
 
 function SummarizerComponent() {
 	const [jsonString, setJSONString] = useState<string>("");
@@ -30,7 +13,7 @@ function SummarizerComponent() {
 				(fc) => fc.name === declaration.name,
 			);
 			if (fc) {
-				const str = (fc.args as any).json_graph;
+				const str = (fc.args as any).conversation_history;
 				setJSONString(str);
 			}
 			// send data for the response of your tool call
@@ -62,7 +45,7 @@ function SummarizerComponent() {
 
 	useEffect(() => {
 		if (embedRef.current && jsonString) {
-			vegaEmbed(embedRef.current, JSON.parse(jsonString));
+			summarize(jsonString);
 		}
 	}, [jsonString]);
 	return <div className="vega-embed" ref={embedRef} />;
