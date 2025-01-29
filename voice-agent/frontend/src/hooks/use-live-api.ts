@@ -1,15 +1,15 @@
-import { AudioStreamer } from "@/lib/audio-streamer";
+import { AudioStreamer } from '@/lib/audio-streamer';
 import {
 	type MultimodalLiveAPIClientConnection,
 	MultimodalLiveClient,
-} from "@/lib/multimodal-live-client";
-import { audioContext, base64ToArrayBuffer } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+} from '@/lib/multimodal-live-client';
+import { audioContext, base64ToArrayBuffer } from '@/lib/utils';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	type LiveConfig,
 	type ServerContent,
 	isModelTurn,
-} from "../../multimodal-live-types";
+} from '../../multimodal-live-types';
 
 export type UseLiveAPIResults = {
 	client: MultimodalLiveClient;
@@ -23,22 +23,24 @@ export type UseLiveAPIResults = {
 export function useLiveAPI({
 	url,
 	setTranscriptionText,
+	setSummaryText,
 }: MultimodalLiveAPIClientConnection & {
 	setTranscriptionText: (
 		text: string | ((prevState: string) => string),
 	) => void;
+	setSummaryText: (text: string) => void;
 }): UseLiveAPIResults {
 	const client = useMemo(() => new MultimodalLiveClient({ url }), [url]);
 	const audioStreamRef = useRef<AudioStreamer | null>(null);
 
 	const [connected, setConnected] = useState(false);
 	const [config, setConfig] = useState<LiveConfig>({
-		model: "models/gemini-2.0-flash-exp",
+		model: 'models/gemini-2.0-flash-exp',
 	});
 
 	useEffect(() => {
 		if (!audioStreamRef.current) {
-			audioContext({ id: "audio-out" }).then((audioCtx: AudioContext) => {
+			audioContext({ id: 'audio-out' }).then((audioCtx: AudioContext) => {
 				audioStreamRef.current = new AudioStreamer(audioCtx);
 			});
 		}
@@ -57,11 +59,11 @@ export function useLiveAPI({
 		};
 		const onContent = (content: ServerContent) => {
 			try {
-				if (typeof content === "string") {
+				if (typeof content === 'string') {
 					const parsedContent = JSON.parse(content);
 					if (isModelTurn(parsedContent)) {
 						const audioParts = parsedContent.modelTurn.parts.filter((part) =>
-							part.inlineData?.mimeType.startsWith("audio/pcm"),
+							part.inlineData?.mimeType.startsWith('audio/pcm'),
 						);
 						for (const part of audioParts) {
 							if (part.inlineData?.data) {
@@ -69,34 +71,36 @@ export function useLiveAPI({
 								audioStreamRef.current?.addPCM16(new Uint8Array(audioData));
 							}
 						}
-					} else if (parsedContent.type === "transcription") {
+					} else if (parsedContent.type === 'transcription') {
 						setTranscriptionText((prevText) => {
-							if (parsedContent.text.trim().startsWith("AI：")) {
+							if (parsedContent.text.trim().startsWith('AI：')) {
 								return `${prevText}\n${parsedContent.text}\n`;
 							}
 							return `${prevText}\nあなた：${parsedContent.text}`;
 						});
+					} else if (parsedContent.type === 'toolResponse') {
+						setSummaryText(parsedContent.text);
 					}
 				}
 			} catch (error) {
-				console.error("Error parsing content:", error);
+				console.error('Error parsing content:', error);
 			}
 		};
 
 		client
-			.on("close", onClose)
-			.on("interrupted", stopAudioStreamer)
-			.on("audio", onAudio)
-			.on("content", onContent);
+			.on('close', onClose)
+			.on('interrupted', stopAudioStreamer)
+			.on('audio', onAudio)
+			.on('content', onContent);
 
 		return () => {
 			client
-				.off("close", onClose)
-				.off("interrupted", stopAudioStreamer)
-				.off("audio", onAudio)
-				.off("content", onContent);
+				.off('close', onClose)
+				.off('interrupted', stopAudioStreamer)
+				.off('audio', onAudio)
+				.off('content', onContent);
 		};
-	}, [client, setTranscriptionText]);
+	}, [client, setTranscriptionText, setSummaryText]);
 
 	const connect = useCallback(async () => {
 		client.disconnect();

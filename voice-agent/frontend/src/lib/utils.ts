@@ -8,8 +8,8 @@ export const audioContext: (
 	options?: GetAudioContextOptions,
 ) => Promise<AudioContext> = (() => {
 	const didInteract = new Promise((res) => {
-		window.addEventListener("pointerdown", res, { once: true });
-		window.addEventListener("keydown", res, { once: true });
+		window.addEventListener('pointerdown', res, { once: true });
+		window.addEventListener('keydown', res, { once: true });
 	});
 
 	return async (options?: GetAudioContextOptions) => {
@@ -18,7 +18,7 @@ export const audioContext: (
 			// 一部のブラウザではユーザーの操作なしに AudioContext をアクティブ化できないため、
 			// このダミーの再生をトリガーとしている
 			a.src =
-				"data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+				'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 			await a.play();
 
 			if (options?.id && map.has(options.id)) {
@@ -57,7 +57,7 @@ export const blobToJSON = (blob: Blob) =>
 				const json = JSON.parse(reader.result as string);
 				resolve(json);
 			} else {
-				reject("Failed to read blob");
+				reject('Failed to read blob');
 			}
 		};
 		reader.readAsText(blob);

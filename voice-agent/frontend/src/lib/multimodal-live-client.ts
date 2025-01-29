@@ -2,16 +2,15 @@ import type {
 	Content,
 	GenerativeContentBlob,
 	Part,
-} from "@google/generative-ai";
-import { EventEmitter } from "eventemitter3";
+} from '@google/generative-ai';
+import { EventEmitter } from 'eventemitter3';
 import type {
 	ClientContentMessage,
 	RealtimeInputMessage,
 	ServerContent,
 	ToolCall,
 	ToolCallCancellation,
-	ToolResponseMessage,
-} from "../../multimodal-live-types";
+} from '../../multimodal-live-types';
 
 /**
  * the events that this client will emit
@@ -39,11 +38,11 @@ export type MultimodalLiveAPIClientConnection = {
  */
 export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEventTypes> {
 	public ws: WebSocket | null = null;
-	public url = "";
+	public url = '';
 
 	constructor({ url }: MultimodalLiveAPIClientConnection) {
 		super();
-		url = url || "ws://localhost:8080/ws";
+		url = url || 'ws://localhost:8080/ws';
 		this.url = url;
 		this.send = this.send.bind(this);
 	}
@@ -51,8 +50,8 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	connect(): Promise<boolean> {
 		const ws = new WebSocket(this.url);
 
-		ws.addEventListener("message", async (evt: MessageEvent) => {
-			this.emit("content", evt.data);
+		ws.addEventListener('message', async (evt: MessageEvent) => {
+			this.emit('content', evt.data);
 		});
 		return new Promise((resolve, reject) => {
 			const onError = () => {
@@ -60,20 +59,20 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 				const message = `Could not connect to "${this.url}"`;
 				reject(new Error(message));
 			};
-			ws.addEventListener("error", onError);
-			ws.addEventListener("open", () => {
-				console.log("connected to socket");
-				this.emit("open");
+			ws.addEventListener('error', onError);
+			ws.addEventListener('open', () => {
+				console.log('connected to socket');
+				this.emit('open');
 
 				this.ws = ws;
 
-				ws.removeEventListener("error", onError);
-				ws.addEventListener("close", (ev: CloseEvent) => {
+				ws.removeEventListener('error', onError);
+				ws.addEventListener('close', (ev: CloseEvent) => {
 					console.log(ev);
 					this.disconnect(ws);
-					let reason = ev.reason || "";
-					if (reason.toLowerCase().includes("error")) {
-						const prelude = "ERROR]";
+					let reason = ev.reason || '';
+					if (reason.toLowerCase().includes('error')) {
+						const prelude = 'ERROR]';
 						const preludeIndex = reason.indexOf(prelude);
 						if (preludeIndex > 0) {
 							reason = reason.slice(
@@ -82,7 +81,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 							);
 						}
 					}
-					this.emit("close", ev);
+					this.emit('close', ev);
 				});
 				resolve(true);
 			});
@@ -108,10 +107,10 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 		let hasVideo = false;
 		for (let i = 0; i < chunks.length; i++) {
 			const ch = chunks[i];
-			if (ch.mimeType.includes("audio")) {
+			if (ch.mimeType.includes('audio')) {
 				hasAudio = true;
 			}
-			if (ch.mimeType.includes("image")) {
+			if (ch.mimeType.includes('image')) {
 				hasVideo = true;
 			}
 			if (hasAudio && hasVideo) {
@@ -128,23 +127,12 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	}
 
 	/**
-	 *  send a response to a function call and provide the id of the functions you are responding to
-	 */
-	sendToolResponse(toolResponse: ToolResponseMessage["toolResponse"]) {
-		const message: ToolResponseMessage = {
-			toolResponse,
-		};
-
-		this._sendDirect(message);
-	}
-
-	/**
 	 * send normal content parts such as { text }
 	 */
 	send(parts: Part | Part[], turnComplete = true) {
 		parts = Array.isArray(parts) ? parts : [parts];
 		const content: Content = {
-			role: "user",
+			role: 'user',
 			parts,
 		};
 
@@ -164,7 +152,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 	 */
 	_sendDirect(request: object) {
 		if (!this.ws) {
-			throw new Error("WebSocket is not connected");
+			throw new Error('WebSocket is not connected');
 		}
 		const str = JSON.stringify(request);
 		this.ws.send(str);
