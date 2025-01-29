@@ -1,5 +1,5 @@
+import { Summarizer } from "./components/Summarizer";
 import { TranscriptionDisplay } from "./components/TranscriptionDisplay";
-import { Altair } from "./components/altair/altair";
 import ControlTray from "./components/control-tray/ControlTray";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 
@@ -15,9 +15,9 @@ function App() {
 			<h1>Voice Agent</h1>
 			<LiveAPIProvider url={uri}>
 				<main>
-					<Altair />
 					<ControlTray />
 					<TranscriptionDisplay />
+					<Summarizer />
 				</main>
 			</LiveAPIProvider>
 		</>

@@ -9,8 +9,7 @@ import type {
 	RealtimeInputMessage,
 	ServerContent,
 	ToolCall,
-	ToolCallCancellation,
-	ToolResponseMessage,
+	ToolCallCancellation
 } from "../../multimodal-live-types";
 
 /**
@@ -125,17 +124,6 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
 			},
 		};
 		this._sendDirect(data);
-	}
-
-	/**
-	 *  send a response to a function call and provide the id of the functions you are responding to
-	 */
-	sendToolResponse(toolResponse: ToolResponseMessage["toolResponse"]) {
-		const message: ToolResponseMessage = {
-			toolResponse,
-		};
-
-		this._sendDirect(message);
 	}
 
 	/**

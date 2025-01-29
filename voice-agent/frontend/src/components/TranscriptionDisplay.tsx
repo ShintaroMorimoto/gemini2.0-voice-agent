@@ -1,8 +1,17 @@
 import { LiveAPIContext } from "@/contexts/LiveAPIContext";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 
 export const TranscriptionDisplay = () => {
-	const { transcriptionText } = useContext(LiveAPIContext);
+	const { transcriptionText, ws } = useContext(LiveAPIContext);
+	useEffect(() => {
+		if (transcriptionText && ws) {
+			ws.send(JSON.stringify({
+				type: "transcription_update",
+				text: transcriptionText,
+				})
+			);
+		}
+	}, [transcriptionText, ws]);
 
 	return (
 		<div className="p-4 bg-white rounded shadow">

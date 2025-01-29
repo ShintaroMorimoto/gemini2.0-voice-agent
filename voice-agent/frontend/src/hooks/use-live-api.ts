@@ -23,10 +23,12 @@ export type UseLiveAPIResults = {
 export function useLiveAPI({
 	url,
 	setTranscriptionText,
+	setSummaryText,
 }: MultimodalLiveAPIClientConnection & {
 	setTranscriptionText: (
 		text: string | ((prevState: string) => string),
 	) => void;
+	setSummaryText: (text: string) => void;
 }): UseLiveAPIResults {
 	const client = useMemo(() => new MultimodalLiveClient({ url }), [url]);
 	const audioStreamRef = useRef<AudioStreamer | null>(null);
@@ -76,6 +78,8 @@ export function useLiveAPI({
 							}
 							return `${prevText}\nあなた：${parsedContent.text}`;
 						});
+					} else if (parsedContent.type === "toolResponse") {
+						setSummaryText(parsedContent.text);
 					}
 				}
 			} catch (error) {
@@ -96,7 +100,7 @@ export function useLiveAPI({
 				.off("audio", onAudio)
 				.off("content", onContent);
 		};
-	}, [client, setTranscriptionText]);
+	}, [client, setTranscriptionText, setSummaryText]);
 
 	const connect = useCallback(async () => {
 		client.disconnect();

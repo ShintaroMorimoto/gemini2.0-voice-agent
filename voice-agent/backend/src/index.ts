@@ -665,9 +665,11 @@ clientWs.on("open", () => {
 					\
 					## ヒアリングで意識してほしい点 \
 					- 「なぜそれが必要か？」「どうしてそのとき使われるのか？」といった、目的を意識して、深堀り質問をしてください。\
+					- 抽象的な言葉を具体化する深堀り質問をしてください。\
             		\
 					## ツールの使用 \
 					- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。\
+					- 要約したヒアリング内容について、クライアントとの認識齟齬がないか確認してください\
 					",
 					},
 				],
@@ -695,8 +697,14 @@ clientWs.on("message", async (message) => {
 		);
 		if (fc) {
 			// summarize関数を呼び出す際に、保持しているtranscriptionTextを使用
+			console.log("summarize呼び出し直前のcurrentTranscriptionText", currentTranscriptionText);
 			const summary = await summarize(currentTranscriptionText);
-			console.log("summary", summary);
+			serverWs.send(
+				JSON.stringify({
+					type: "toolResponse",
+					text: summary,
+				}),
+			);
 		}
 		return;
 	}
@@ -748,7 +756,7 @@ clientWs.on("message", async (message) => {
 			for (const part of audioParts) {
 				if (part.inlineData?.data) {
 					const audioBuffer = Buffer.from(part.inlineData.data, "base64");
-					console.log("Received audio chunk size:", audioBuffer.length);
+					// console.log("Received audio chunk size:", audioBuffer.length);
 					vertexAudioState.buffer.push(audioBuffer);
 				}
 			}

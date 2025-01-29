@@ -1,54 +1,19 @@
 import { useLiveAPIContext } from "@/contexts/LiveAPIContext";
-import { memo, useEffect, useRef, useState } from "react";
-import type { ToolCall } from "../../multimodal-live-types";
+import { memo } from "react";
 
 function SummarizerComponent() {
-	const [jsonString, setJSONString] = useState<string>("");
-	const { client } = useLiveAPIContext();
+	const { summaryText } = useLiveAPIContext();
 
-	useEffect(() => {
-		const onToolCall = (toolCall: ToolCall) => {
-			console.log("got toolcall", toolCall);
-			const fc = toolCall.functionCalls.find(
-				(fc) => fc.name === declaration.name,
-			);
-			if (fc) {
-				const str = (fc.args as any).conversation_history;
-				setJSONString(str);
-			}
-			// send data for the response of your tool call
-			// in this case Im just saying it was successful
-			if (toolCall.functionCalls.length) {
-				setTimeout(
-					() =>
-						client?.sendToolResponse({
-							functionResponses: toolCall.functionCalls.map((fc) => ({
-								response: { output: { success: true } },
-								id: fc.id,
-							})),
-						}),
-					200,
-				);
-			}
-		};
-		if (client) {
-			client.on("toolcall", onToolCall);
-		}
-		return () => {
-			if (client) {
-				client.off("toolcall", onToolCall);
-			}
-		};
-	}, [client]);
+	if (!summaryText) {
+		return null;
+	}
 
-	const embedRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (embedRef.current && jsonString) {
-			summarize(jsonString);
-		}
-	}, [jsonString]);
-	return <div className="vega-embed" ref={embedRef} />;
+	return (
+		<div className="bg-white/10 rounded-lg p-4 mt-4">
+			<h2 className="text-xl font-bold mb-2">会話の要約</h2>
+			<p className="whitespace-pre-wrap">{summaryText}</p>
+		</div>
+	);
 }
 
 export const Summarizer = memo(SummarizerComponent);
