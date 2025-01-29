@@ -1,14 +1,15 @@
-import { LiveAPIContext } from "@/contexts/LiveAPIContext";
-import { useContext, useEffect } from "react";
+import { LiveAPIContext } from '@/contexts/LiveAPIContext';
+import { useContext, useEffect } from 'react';
 
 export const TranscriptionDisplay = () => {
 	const { transcriptionText, ws } = useContext(LiveAPIContext);
 	useEffect(() => {
 		if (transcriptionText && ws) {
-			ws.send(JSON.stringify({
-				type: "transcription_update",
-				text: transcriptionText,
-				})
+			ws.send(
+				JSON.stringify({
+					type: 'transcription_update',
+					text: transcriptionText,
+				}),
 			);
 		}
 	}, [transcriptionText, ws]);

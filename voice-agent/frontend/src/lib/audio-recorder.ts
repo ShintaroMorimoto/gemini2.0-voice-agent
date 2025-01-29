@@ -1,10 +1,10 @@
-import EventEmitter from "eventemitter3";
-import { createWorkletFromSrc } from "./audio-worklet-registry";
-import { audioContext } from "./utils";
-import AudioRecordingWorklet from "./worklets/audio-processing";
+import EventEmitter from 'eventemitter3';
+import { createWorkletFromSrc } from './audio-worklet-registry';
+import { audioContext } from './utils';
+import AudioRecordingWorklet from './worklets/audio-processing';
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
-	let binary = "";
+	let binary = '';
 	const bytes = new Uint8Array(buffer);
 	const len = bytes.byteLength;
 	for (let i = 0; i < len; i++) {
@@ -27,7 +27,7 @@ export class AudioRecorder extends EventEmitter {
 	}
 	async start() {
 		if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-			throw new Error("Cloud not request user media");
+			throw new Error('Cloud not request user media');
 		}
 
 		this.starting = new Promise((resolve, reject) => {
@@ -41,7 +41,7 @@ export class AudioRecorder extends EventEmitter {
 					});
 					this.source = this.audioContext.createMediaStreamSource(this.stream);
 
-					const workletName = "audio-recorder-worklet";
+					const workletName = 'audio-recorder-worklet';
 					const src = createWorkletFromSrc(workletName, AudioRecordingWorklet);
 
 					await this.audioContext.audioWorklet.addModule(src);
@@ -55,7 +55,7 @@ export class AudioRecorder extends EventEmitter {
 
 						if (arrayBuffer) {
 							const arrayBufferString = arrayBufferToBase64(arrayBuffer);
-							this.emit("data", arrayBufferString);
+							this.emit('data', arrayBufferString);
 						}
 					};
 					this.source.connect(this.recordingWorklet);

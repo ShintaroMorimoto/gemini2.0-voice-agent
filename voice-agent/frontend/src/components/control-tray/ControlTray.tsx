@@ -1,6 +1,6 @@
-import { useLiveAPIContext } from "@/contexts/LiveAPIContext";
-import { AudioRecorder } from "@/lib/audio-recorder";
-import { type ReactNode, memo, useEffect, useRef, useState } from "react";
+import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
+import { AudioRecorder } from '@/lib/audio-recorder';
+import { type ReactNode, memo, useEffect, useRef, useState } from 'react';
 
 export type ControlTrayProps = {
 	children?: ReactNode;
@@ -24,18 +24,18 @@ function ControlTray({ children }: ControlTrayProps) {
 		const onData = (base64: string) => {
 			client?.sendRealtimeInput([
 				{
-					mimeType: "audio/pcm;rate=16000",
+					mimeType: 'audio/pcm;rate=16000',
 					data: base64,
 				},
 			]);
 		};
 		if (connected && !muted && audioRecorder) {
-			audioRecorder.on("data", onData).start();
+			audioRecorder.on('data', onData).start();
 		} else {
 			audioRecorder.stop();
 		}
 		return () => {
-			audioRecorder.off("data", onData);
+			audioRecorder.off('data', onData);
 		};
 	}, [connected, client, muted, audioRecorder]);
 
@@ -60,7 +60,7 @@ function ControlTray({ children }: ControlTrayProps) {
 						onClick={connected ? disconnect : connect}
 					>
 						<span className="material-symbols-outlined filled">
-							{connected ? "pause" : "play_arrow"}
+							{connected ? 'pause' : 'play_arrow'}
 						</span>
 					</button>
 				</div>

@@ -1,7 +1,7 @@
 import {
 	createWorkletFromSrc,
 	registeredWorklets,
-} from "./audio-worklet-registry";
+} from './audio-worklet-registry';
 
 export class AudioStreamer {
 	public audioQueue: Float32Array[] = [];
@@ -215,7 +215,7 @@ export class AudioStreamer {
 	}
 
 	async resume() {
-		if (this.context.state === "suspended") {
+		if (this.context.state === 'suspended') {
 			await this.context.resume();
 		}
 

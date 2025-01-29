@@ -1,5 +1,5 @@
-import { useLiveAPIContext } from "@/contexts/LiveAPIContext";
-import { memo } from "react";
+import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
+import { memo } from 'react';
 
 function SummarizerComponent() {
 	const { summaryText } = useLiveAPIContext();
