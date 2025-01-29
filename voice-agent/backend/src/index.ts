@@ -419,6 +419,12 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 							try {
 								const parsedData = await JSON.parse(data.toString());
 
+								if (parsedData.type === "transcription_update") {
+									console.log("Received transcription update:", parsedData.text);
+									// transcriptionTextを更新
+									currentTranscriptionText = parsedData.text;
+								}
+
 								// 音声データの場合
 								if (parsedData.realtimeInput?.mediaChunks) {
 									const chunks = parsedData.realtimeInput.mediaChunks;
@@ -551,12 +557,37 @@ const clientWs = new WebSocket(
 	},
 );
 
+// 最新のtranscriptionTextを保持する変数
+let currentTranscriptionText = "";
+
+// Gemini APIのレスポンス型定義
+interface GeminiResponse {
+	candidates: Array<{
+		content: {
+			role: string;
+			parts: Array<{
+				text: string;
+			}>;
+		};
+		finishReason: string;
+		avgLogprobs: number;
+	}>;
+	usageMetadata: {
+		promptTokenCount: number;
+		candidatesTokenCount: number;
+		totalTokenCount: number;
+	};
+	modelVersion: string;
+	createTime: string;
+	responseId: string;
+}
+
 const summarize = async (conversation_history: string) => {
 	const project = "sandbox-morimoto-s1";
 	const location = "us-central1";
 	const apiHost = `${location}-aiplatform.googleapis.com`;
 	const modelId = "gemini-2.0-flash-exp";
-	const apiEndpoint = `${apiHost}/projects/${project}/locations/${location}/publishers/google/models/${modelId}`;
+	const apiEndpoint = `${apiHost}/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
 
 	const query = `\
 		以下の文章を要約してください。\
@@ -572,17 +603,32 @@ const summarize = async (conversation_history: string) => {
 		},
 	};
 	try {
-		const result = await fetch(`https://${apiEndpoint}:generateContent`, {
+		const result = await fetch(`https://${apiEndpoint}`, {
 			headers: {
 				"Content-Type": "application/json",
-		},
-		method: "POST",
-		body: JSON.stringify(data),
+				"Authorization": `Bearer ${token.token}`,
+			},
+			method: "POST",
+			body: JSON.stringify(data),
 		});
-		console.log("result", result);
+
+		if (!result.ok) {
+			throw new Error(`API request failed with status ${result.status}`);
+		}
+
+		const responseData = await result.json() as GeminiResponse;
+		const summaryText = responseData.candidates[0]?.content.parts[0]?.text;
+		
+		if (!summaryText) {
+			throw new Error("No summary text found in response");
+		}
+
+		console.log("Summary:", summaryText);
+		return summaryText;
 	} catch (error) {
 		console.error("Error fetching summarize:", error);
-}
+		throw error;
+	}
 };
 
 const summarizeFunctionDeclaration: FunctionDeclaration = {
@@ -648,16 +694,14 @@ clientWs.on("message", async (message) => {
 			(fc) => fc.name === summarizeFunctionDeclaration.name,
 		);
 		if (fc) {
-			const str = (fc.args as any).conversation_history;
-			const summary = await summarize(str);
+			// summarize関数を呼び出す際に、保持しているtranscriptionTextを使用
+			const summary = await summarize(currentTranscriptionText);
 			console.log("summary", summary);
 		}
-		// send data for the response of your tool call
-		// in this case Im just saying it was successful
-
 		return;
-
 	}
+
+
 	if (isToolCallCancellationMessage(response)) {
 		// TODO: ここの処理も作る必要あり
 		// toolcallがキャンセルされたときの処理
@@ -703,7 +747,6 @@ clientWs.on("message", async (message) => {
 			// 音声データをバッファに追加
 			for (const part of audioParts) {
 				if (part.inlineData?.data) {
-					console.log("Vertex AIからの音声データを受信しました");
 					const audioBuffer = Buffer.from(part.inlineData.data, "base64");
 					console.log("Received audio chunk size:", audioBuffer.length);
 					vertexAudioState.buffer.push(audioBuffer);
