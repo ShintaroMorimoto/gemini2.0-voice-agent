@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Mic, MicOff, Power } from 'lucide-react';
 import { memo, useState } from 'react';
