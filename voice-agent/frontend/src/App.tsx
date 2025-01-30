@@ -1,5 +1,7 @@
+import { useState } from 'react';
+import ControlPanel from './components/ControlPanel';
 import { Summarizer } from './components/Summarizer';
-import { TranscriptionDisplay } from './components/TranscriptionDisplay';
+// import { TranscriptionDisplay } from './components/TranscriptionDisplay';
 import ControlTray from './components/control-tray/ControlTray';
 import { LiveAPIProvider } from './contexts/LiveAPIContext';
 
@@ -10,16 +12,32 @@ const uri =
 		: 'ws://localhost:3000/ws';
 
 function App() {
+	const [isConnected, setIsConnected] = useState(false);
+	const [isMicOn, setIsMicOn] = useState(false);
+
 	return (
 		<>
 			<h1>Voice Agent</h1>
-			<LiveAPIProvider url={uri}>
-				<main>
-					<ControlTray />
-					<TranscriptionDisplay />
-					<Summarizer />
-				</main>
-			</LiveAPIProvider>
+			<div className="flex h-screen bg-gray-900">
+				<div className="w-1/3 p-4 bg-gray-800 shadow-md">
+					<div className="mb-4">
+						<h1 className="text-2xl font-bold text-gray-200">
+							AI Transcription
+						</h1>
+					</div>
+					<ControlPanel
+						isConnected={isConnected}
+						setIsConnected={setIsConnected}
+						isMicOn={isMicOn}
+						setIsMicOn={setIsMicOn}
+					/>
+					<LiveAPIProvider url={uri}>
+						<ControlTray />
+						{/* <TranscriptionDisplay /> */}
+						<Summarizer />
+					</LiveAPIProvider>
+				</div>
+			</div>
 		</>
 	);
 }
