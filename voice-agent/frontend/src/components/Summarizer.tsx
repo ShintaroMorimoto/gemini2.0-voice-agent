@@ -4,14 +4,14 @@ import { memo } from 'react';
 function SummarizerComponent() {
 	const { summaryText } = useLiveAPIContext();
 
-	if (!summaryText) {
-		return null;
-	}
-
 	return (
-		<div className="bg-white/10 rounded-lg p-4 mt-4">
-			<h2 className="text-xl font-bold mb-2">会話の要約</h2>
-			<p className="whitespace-pre-wrap">{summaryText}</p>
+		<div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-md flex-grow overflow-auto">
+			<h2 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
+				Conversation Summary
+			</h2>
+			<p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+				{summaryText || 'Summary will be displayed here'}
+			</p>
 		</div>
 	);
 }

@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
 import { AudioRecorder } from '@/lib/audio-recorder';
@@ -145,14 +145,6 @@ function ControlPanel({
 			</div>
 			<div className="mb-4 text-sm font-medium text-gray-600 dark:text-gray-400">
 				Status: {status}
-			</div>
-			<div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-md flex-grow overflow-auto">
-				<h2 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
-					Conversation Summary
-				</h2>
-				<p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-					{summary}
-				</p>
 			</div>
 		</div>
 	);
