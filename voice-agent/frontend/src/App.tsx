@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ControlPanel from './components/ControlPanel';
 import { Summarizer } from './components/Summarizer';
-// import { TranscriptionDisplay } from './components/TranscriptionDisplay';
+import TranscriptionDisplay from './components/TranscriptionDisplay';
 import { LiveAPIProvider } from './contexts/LiveAPIContext';
 
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -16,14 +16,12 @@ function App() {
 
 	return (
 		<>
-			<h1>Voice Agent</h1>
 			<div className="flex h-screen bg-gray-900">
 				<div className="w-1/3 p-4 bg-gray-800 shadow-md">
 					<div className="mb-4">
 						<h1 className="text-2xl font-bold text-gray-200">
 							AI Transcription
 						</h1>
-					</div>
 					<LiveAPIProvider url={uri}>
 						<ControlPanel
 							isConnected={isConnected}
@@ -31,9 +29,10 @@ function App() {
 							isMicOn={isMicOn}
 							setIsMicOn={setIsMicOn}
 						/>
-						{/* <TranscriptionDisplay /> */}
+						<TranscriptionDisplay isConnected={isConnected} />
 						<Summarizer />
 					</LiveAPIProvider>
+					</div>
 				</div>
 			</div>
 		</>
