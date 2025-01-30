@@ -22,16 +22,16 @@ function App() {
 						<h1 className="text-2xl font-bold text-gray-200">
 							AI Transcription
 						</h1>
-					<LiveAPIProvider url={uri}>
-						<ControlPanel
-							isConnected={isConnected}
-							setIsConnected={setIsConnected}
-							isMicOn={isMicOn}
-							setIsMicOn={setIsMicOn}
-						/>
-						<TranscriptionDisplay isConnected={isConnected} />
-						<Summarizer />
-					</LiveAPIProvider>
+						<LiveAPIProvider url={uri}>
+							<ControlPanel
+								isConnected={isConnected}
+								setIsConnected={setIsConnected}
+								isMicOn={isMicOn}
+								setIsMicOn={setIsMicOn}
+							/>
+							<TranscriptionDisplay />
+							<Summarizer />
+						</LiveAPIProvider>
 					</div>
 				</div>
 			</div>

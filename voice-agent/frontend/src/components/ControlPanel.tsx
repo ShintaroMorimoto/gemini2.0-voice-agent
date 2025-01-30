@@ -23,7 +23,6 @@ function ControlPanel({
 	isMicOn,
 	setIsMicOn,
 }: ControlPanelProps) {
-	const [summary, setSummary] = useState<string>('No conversation yet.');
 	const [isLoading, setIsLoading] = useState(false);
 	const [status, setStatus] = useState<string>('Disconnected');
 	const [audioRecorder] = useState(() => new AudioRecorder());
@@ -54,18 +53,15 @@ function ControlPanel({
 			if (!isConnected) {
 				await connect();
 				setIsConnected(true);
-				setSummary('Connection established. Ready for conversation.');
 				setStatus('Connected');
 			} else {
 				await disconnect();
 				setIsConnected(false);
-				setSummary('Connection closed.');
 				setStatus('Disconnected');
 				setIsMicOn(false);
 			}
 		} catch (error) {
 			console.error('Connection error:', error);
-			setSummary('Connection failed.');
 			setStatus('Error');
 		} finally {
 			setIsLoading(false);
@@ -75,10 +71,8 @@ function ControlPanel({
 	const handleMicToggle = () => {
 		setIsMicOn(!isMicOn);
 		if (!isMicOn) {
-			setSummary('Microphone is now on. Start speaking.');
 			setStatus('Connected, Mic On');
 		} else {
-			setSummary('Microphone is off.');
 			setStatus('Connected, Mic Off');
 		}
 	};

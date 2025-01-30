@@ -77,7 +77,8 @@ export function useLiveAPI({
 						console.log('Received transcription:', parsedContent); // デバッグ用
 						// transcriptionTextの更新
 						setTranscriptionText((prevText) => {
-							const prefix = parsedContent.role === 'assistant_ui' ? 'AI' : 'あなた';
+							const prefix =
+								parsedContent.role === 'assistant_ui' ? 'AI' : 'あなた';
 							return `${prevText}\n${prefix}：${parsedContent.content}`;
 						});
 					} else if (parsedContent.type === 'toolResponse') {

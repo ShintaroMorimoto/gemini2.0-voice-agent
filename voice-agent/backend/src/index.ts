@@ -146,9 +146,13 @@ const resetAudioState = () => {
 let currentTranscriptionText = '';
 
 // メッセージを追加する関数
-const appendTranscriptionText = (role: 'user_ui' | 'assistant_ui', content: string) => {
+const appendTranscriptionText = (
+	role: 'user_ui' | 'assistant_ui',
+	content: string,
+) => {
 	const prefix = role === 'assistant_ui' ? 'AI' : 'あなた';
-	currentTranscriptionText = `${currentTranscriptionText}\n${prefix}：${content}`.trim();
+	currentTranscriptionText =
+		`${currentTranscriptionText}\n${prefix}：${content}`.trim();
 };
 
 // Speech-to-Text処理（ユーザー音声用）
@@ -491,14 +495,14 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 												userAudioState.silenceCount = 0;
 												userAudioState.buffer.push(buffer);
 												userAudioState.isRecording = true;
-												console.log('User voice activity detected');
+												// console.log('User voice activity detected');
 											} else if (userAudioState.isRecording) {
 												userAudioState.silenceCount++;
 												userAudioState.buffer.push(buffer);
-												console.log(
-													'Silence detected, count:',
-													userAudioState.silenceCount,
-												);
+												// console.log(
+												// 'Silence detected, count:',
+												// userAudioState.silenceCount,
+												// );
 
 												if (userAudioState.silenceCount >= MIN_SILENCE_FRAMES) {
 													if (

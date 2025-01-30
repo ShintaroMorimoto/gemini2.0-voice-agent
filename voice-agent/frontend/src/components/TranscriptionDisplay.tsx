@@ -1,10 +1,11 @@
 import { Bot, User } from 'lucide-react';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LiveAPIContext } from '../contexts/LiveAPIContext';
-
+/*
 interface TranscriptProps {
 	isConnected: boolean;
 }
+*/
 
 interface Message {
 	role: 'user_ui' | 'assistant_ui';
@@ -12,7 +13,7 @@ interface Message {
 	timestamp: Date;
 }
 
-export default function Transcript({ isConnected }: TranscriptProps) {
+export default function Transcript() {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const transcriptRef = useRef<HTMLDivElement>(null);
 	const { transcriptionText } = useContext(LiveAPIContext);
@@ -31,13 +32,13 @@ export default function Transcript({ isConnected }: TranscriptProps) {
 				newMessages.push({
 					role: 'assistant_ui',
 					content: line.substring(3).trim(),
-					timestamp: new Date()
+					timestamp: new Date(),
 				});
 			} else if (line.startsWith('あなた：')) {
 				newMessages.push({
 					role: 'user_ui',
 					content: line.substring(4).trim(),
-					timestamp: new Date()
+					timestamp: new Date(),
 				});
 			}
 		}
@@ -76,7 +77,9 @@ export default function Transcript({ isConnected }: TranscriptProps) {
 									: 'bg-green-500 text-white'
 							}`}
 						>
-							<p className="text-sm whitespace-pre-wrap">{message.content || ''}</p>
+							<p className="text-sm whitespace-pre-wrap">
+								{message.content || ''}
+							</p>
 							<p className="text-xs opacity-75 mt-1">
 								{message.timestamp.toLocaleTimeString()}
 							</p>
