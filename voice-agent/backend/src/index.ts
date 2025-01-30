@@ -142,6 +142,19 @@ const resetAudioState = () => {
 	userAudioState.isProcessing = false;
 };
 
+// 最新のtranscriptionTextを保持する変数
+let currentTranscriptionText = '';
+
+// メッセージを追加する関数
+const appendTranscriptionText = (
+	role: 'user_ui' | 'assistant_ui',
+	content: string,
+) => {
+	const prefix = role === 'assistant_ui' ? 'AI' : 'あなた';
+	currentTranscriptionText =
+		`${currentTranscriptionText}\n${prefix}：${content}`.trim();
+};
+
 // Speech-to-Text処理（ユーザー音声用）
 const processSpeechToText = async (audioBuffer: Buffer) => {
 	if (userAudioState.isProcessing) {
@@ -172,10 +185,13 @@ const processSpeechToText = async (audioBuffer: Buffer) => {
 
 		if (transcription) {
 			console.log('User transcription:', transcription);
+			appendTranscriptionText('user_ui', transcription);
 			serverWs.send(
 				JSON.stringify({
 					type: 'transcription',
-					text: transcription,
+					role: 'user_ui',
+					content: transcription,
+					timestamp: new Date().toISOString(),
 				}),
 			);
 		}
@@ -220,12 +236,21 @@ const processVertexAIAudioToText = async (audioBuffer: Buffer) => {
 
 		if (transcription) {
 			console.log('VAI transcription:', transcription);
-			serverWs.send(
-				JSON.stringify({
-					type: 'transcription',
-					text: `\nAI： ${transcription}`,
-				}),
-			);
+			// 重複チェック
+			const lastMessage = currentTranscriptionText.split('\n').pop() || '';
+			if (!lastMessage.includes(transcription)) {
+				appendTranscriptionText('assistant_ui', transcription);
+				serverWs.send(
+					JSON.stringify({
+						type: 'transcription',
+						role: 'assistant_ui',
+						content: transcription,
+						timestamp: new Date().toISOString(),
+					}),
+				);
+			} else {
+				console.log('Skipping duplicate message:', transcription);
+			}
 		} else {
 			console.log('No transcription result from Vertex AI audio');
 		}
@@ -470,14 +495,14 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 												userAudioState.silenceCount = 0;
 												userAudioState.buffer.push(buffer);
 												userAudioState.isRecording = true;
-												console.log('User voice activity detected');
+												// console.log('User voice activity detected');
 											} else if (userAudioState.isRecording) {
 												userAudioState.silenceCount++;
 												userAudioState.buffer.push(buffer);
-												console.log(
-													'Silence detected, count:',
-													userAudioState.silenceCount,
-												);
+												// console.log(
+												// 'Silence detected, count:',
+												// userAudioState.silenceCount,
+												// );
 
 												if (userAudioState.silenceCount >= MIN_SILENCE_FRAMES) {
 													if (
@@ -538,7 +563,6 @@ dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 const project = process.env.PROJECT;
 const location = process.env.LOCATION;
 const version = process.env.VERSION;
-console.log('project', project);
 
 const auth = new GoogleAuth({
 	scopes: ['https://www.googleapis.com/auth/cloud-platform'],
@@ -561,9 +585,6 @@ const clientWs = new WebSocket(
 		},
 	},
 );
-
-// 最新のtranscriptionTextを保持する変数
-let currentTranscriptionText = '';
 
 // Gemini APIのレスポンス型定義
 interface GeminiResponse {
@@ -701,11 +722,14 @@ clientWs.on('message', async (message) => {
 			(fc) => fc.name === summarizeFunctionDeclaration.name,
 		);
 		if (fc) {
-			// summarize関数を呼び出す際に、保持しているtranscriptionTextを使用
 			console.log(
 				'summarize呼び出し直前のcurrentTranscriptionText',
 				currentTranscriptionText,
 			);
+			if (!currentTranscriptionText.trim()) {
+				console.log('No conversation to summarize');
+				return;
+			}
 			const summary = await summarize(currentTranscriptionText);
 			serverWs.send(
 				JSON.stringify({

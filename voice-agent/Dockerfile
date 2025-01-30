@@ -7,10 +7,10 @@ RUN apk add --no-cache sox
 WORKDIR /app
 
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci
+RUN cd backend && npm ci --omit=dev
 
 COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm ci
+RUN cd frontend && npm ci --omit=dev
 
 COPY backend ./backend
 COPY frontend ./frontend

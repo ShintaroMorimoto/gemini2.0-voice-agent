@@ -57,10 +57,12 @@ export function useLiveAPI({
 		const onAudio = (data: ArrayBuffer) => {
 			audioStreamRef.current?.addPCM16(new Uint8Array(data));
 		};
+
 		const onContent = (content: ServerContent) => {
 			try {
 				if (typeof content === 'string') {
 					const parsedContent = JSON.parse(content);
+					console.log('Received content:', parsedContent); // デバッグ用
 					if (isModelTurn(parsedContent)) {
 						const audioParts = parsedContent.modelTurn.parts.filter((part) =>
 							part.inlineData?.mimeType.startsWith('audio/pcm'),
@@ -72,11 +74,12 @@ export function useLiveAPI({
 							}
 						}
 					} else if (parsedContent.type === 'transcription') {
+						console.log('Received transcription:', parsedContent); // デバッグ用
+						// transcriptionTextの更新
 						setTranscriptionText((prevText) => {
-							if (parsedContent.text.trim().startsWith('AI：')) {
-								return `${prevText}\n${parsedContent.text}\n`;
-							}
-							return `${prevText}\nあなた：${parsedContent.text}`;
+							const prefix =
+								parsedContent.role === 'assistant_ui' ? 'AI' : 'あなた';
+							return `${prevText}\n${prefix}：${parsedContent.content}`;
 						});
 					} else if (parsedContent.type === 'toolResponse') {
 						setSummaryText(parsedContent.text);
