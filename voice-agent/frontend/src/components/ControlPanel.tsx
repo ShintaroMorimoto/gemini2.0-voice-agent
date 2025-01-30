@@ -1,12 +1,14 @@
 import { Button } from '@/components/ui/button';
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
+import { AudioRecorder } from '@/lib/audio-recorder';
 import { Mic, MicOff, Power } from 'lucide-react';
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 interface ControlPanelProps {
 	isConnected: boolean;
@@ -24,21 +26,50 @@ function ControlPanel({
 	const [summary, setSummary] = useState<string>('No conversation yet.');
 	const [isLoading, setIsLoading] = useState(false);
 	const [status, setStatus] = useState<string>('Disconnected');
+	const [audioRecorder] = useState(() => new AudioRecorder());
+	const { client, connected, connect, disconnect } = useLiveAPIContext();
 
-	const handleConnect = () => {
+	useEffect(() => {
+		const onData = (base64: string) => {
+			client?.sendRealtimeInput([
+				{
+					mimeType: 'audio/pcm;rate=16000',
+					data: base64,
+				},
+			]);
+		};
+		if (connected && isMicOn && audioRecorder) {
+			audioRecorder.on('data', onData).start();
+		} else {
+			audioRecorder.stop();
+		}
+		return () => {
+			audioRecorder.off('data', onData);
+		};
+	}, [connected, client, isMicOn, audioRecorder]);
+
+	const handleConnect = async () => {
 		setIsLoading(true);
-		setTimeout(() => {
-			setIsConnected(!isConnected);
-			setIsLoading(false);
+		try {
 			if (!isConnected) {
+				await connect();
+				setIsConnected(true);
 				setSummary('Connection established. Ready for conversation.');
 				setStatus('Connected');
 			} else {
+				await disconnect();
+				setIsConnected(false);
 				setSummary('Connection closed.');
 				setStatus('Disconnected');
 				setIsMicOn(false);
 			}
-		}, 1500);
+		} catch (error) {
+			console.error('Connection error:', error);
+			setSummary('Connection failed.');
+			setStatus('Error');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	const handleMicToggle = () => {

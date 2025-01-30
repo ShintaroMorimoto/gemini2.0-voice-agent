@@ -2,7 +2,6 @@ import { useState } from 'react';
 import ControlPanel from './components/ControlPanel';
 import { Summarizer } from './components/Summarizer';
 // import { TranscriptionDisplay } from './components/TranscriptionDisplay';
-import ControlTray from './components/control-tray/ControlTray';
 import { LiveAPIProvider } from './contexts/LiveAPIContext';
 
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -25,14 +24,13 @@ function App() {
 							AI Transcription
 						</h1>
 					</div>
-					<ControlPanel
-						isConnected={isConnected}
-						setIsConnected={setIsConnected}
-						isMicOn={isMicOn}
-						setIsMicOn={setIsMicOn}
-					/>
 					<LiveAPIProvider url={uri}>
-						<ControlTray />
+						<ControlPanel
+							isConnected={isConnected}
+							setIsConnected={setIsConnected}
+							isMicOn={isMicOn}
+							setIsMicOn={setIsMicOn}
+						/>
 						{/* <TranscriptionDisplay /> */}
 						<Summarizer />
 					</LiveAPIProvider>
