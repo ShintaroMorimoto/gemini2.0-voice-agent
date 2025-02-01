@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
 import { AudioRecorder } from '@/lib/audio-recorder';
@@ -78,8 +78,8 @@ function ControlPanel({
 	};
 
 	return (
-		<div className="flex flex-col h-full">
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 w-full">
+		<div className="flex flex-col">
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
 				<TooltipProvider>
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -137,7 +137,7 @@ function ControlPanel({
 					</Tooltip>
 				</TooltipProvider>
 			</div>
-			<div className="mb-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+			<div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
 				Status: {status}
 			</div>
 		</div>

@@ -15,27 +15,29 @@ function App() {
 	const [isMicOn, setIsMicOn] = useState(false);
 
 	return (
-		<>
-			<div className="flex h-screen bg-gray-900">
-				<div className="w-1/3 p-4 bg-gray-800 shadow-md">
-					<div className="mb-4">
-						<h1 className="text-2xl font-bold text-gray-200">
+		<div className="flex h-screen bg-gray-900">
+			<LiveAPIProvider url={uri}>
+				<div className="w-1/4 p-4 bg-gray-800 flex flex-col">
+					<div>
+						<h1 className="text-2xl font-bold text-gray-200 mb-4">
 							AI Transcription
 						</h1>
-						<LiveAPIProvider url={uri}>
-							<ControlPanel
-								isConnected={isConnected}
-								setIsConnected={setIsConnected}
-								isMicOn={isMicOn}
-								setIsMicOn={setIsMicOn}
-							/>
-							<TranscriptionDisplay />
+						<ControlPanel
+							isConnected={isConnected}
+							setIsConnected={setIsConnected}
+							isMicOn={isMicOn}
+							setIsMicOn={setIsMicOn}
+						/>
+						<div className="mt-0">
 							<Summarizer />
-						</LiveAPIProvider>
+						</div>
 					</div>
 				</div>
-			</div>
-		</>
+				<div className="w-3/4">
+					<TranscriptionDisplay />
+				</div>
+			</LiveAPIProvider>
+		</div>
 	);
 }
 

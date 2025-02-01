@@ -51,7 +51,7 @@ export default function Transcript() {
 	}, [messages]);
 
 	return (
-		<div className="fixed top-0 right-0 w-1/2 h-screen bg-gray-900 text-white p-4 overflow-hidden">
+		<div className="h-screen bg-gray-900 text-white p-4 overflow-hidden w-full">
 			<h2 className="text-xl font-bold mb-4">Conversation</h2>
 			<div
 				ref={transcriptRef}

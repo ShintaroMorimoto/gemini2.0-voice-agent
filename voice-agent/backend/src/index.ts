@@ -131,8 +131,8 @@ const vertexAudioState: AudioState = {
 
 // 音声検出の設定値
 const SILENCE_THRESHOLD = 700; // これ以上のRMS値があれば音声と判断
-const MIN_SILENCE_FRAMES = 15; // 無音判定に必要な連続フレーム数
-const MIN_VOICE_FRAMES = 10; // ノイズ除去のための最小発話フレーム数
+const MIN_SILENCE_FRAMES = 50; // 無音判定に必要な連続フレーム数
+const MIN_VOICE_FRAMES = 70; // ノイズ除去のための最小発話フレーム数
 
 // 音声処理状態のリセット
 const resetAudioState = () => {
