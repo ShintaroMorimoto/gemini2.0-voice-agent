@@ -52,7 +52,7 @@ export default function Transcript() {
 
 	return (
 		<div className="h-screen bg-gray-900 text-white p-4 overflow-hidden w-full">
-			<h2 className="text-xl font-bold mb-4">Conversation</h2>
+			<h2 className="text-xl font-bold mb-4 text-gray-200">Conversation</h2>
 			<div
 				ref={transcriptRef}
 				className="h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-4 scrollbar-hide"

@@ -20,7 +20,7 @@ function App() {
 				<div className="w-1/4 p-4 bg-gray-800 flex flex-col">
 					<div>
 						<h1 className="text-2xl font-bold text-gray-200 mb-4">
-							AI Transcription
+							Voice Agent
 						</h1>
 						<ControlPanel
 							isConnected={isConnected}

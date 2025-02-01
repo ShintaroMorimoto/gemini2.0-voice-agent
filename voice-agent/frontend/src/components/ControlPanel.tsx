@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
 import { AudioRecorder } from '@/lib/audio-recorder';
@@ -71,9 +71,9 @@ function ControlPanel({
 	const handleMicToggle = () => {
 		setIsMicOn(!isMicOn);
 		if (!isMicOn) {
-			setStatus('Connected, Mic On');
+			setStatus('Connected, Mic is now On');
 		} else {
-			setStatus('Connected, Mic Off');
+			setStatus('Connected, Mic is now Off');
 		}
 	};
 
@@ -87,8 +87,8 @@ function ControlPanel({
 								onClick={handleConnect}
 								className={`w-full transition-colors ${
 									isConnected
-										? 'bg-green-500 hover:bg-green-600 dark:bg-green-700 dark:hover:bg-green-800'
-										: 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-800'
+										? 'bg-green-500 hover:bg-green-600'
+										: 'bg-blue-500 hover:bg-blue-600'
 								}`}
 								disabled={isLoading}
 							>
@@ -116,8 +116,8 @@ function ControlPanel({
 								onClick={handleMicToggle}
 								className={`w-full transition-colors ${
 									isMicOn
-										? 'bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800'
-										: 'bg-gray-500 hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-800'
+										? 'bg-red-500 hover:bg-red-600'
+										: 'bg-gray-500 hover:bg-gray-600'
 								}`}
 								disabled={!isConnected}
 							>
@@ -137,7 +137,7 @@ function ControlPanel({
 					</Tooltip>
 				</TooltipProvider>
 			</div>
-			<div className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+			<div className="mb-2 text-sm font-medium text-gray-200">
 				Status: {status}
 			</div>
 		</div>
