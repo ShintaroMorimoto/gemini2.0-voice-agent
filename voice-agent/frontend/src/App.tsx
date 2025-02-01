@@ -19,10 +19,10 @@ function App() {
 			<LiveAPIProvider url={uri}>
 				<div className="mx-auto max-w-6xl grid gap-6 md:grid-cols-[300px_1fr]">
 					<div className="space-y-6">
+						<h1 className="text-xl font-bold text-slate-100 mb-4">
+							Voice Agent
+						</h1>
 						<div className="bg-slate-900/50 border-slate-800 rounded-lg p-4">
-							<h1 className="text-xl font-bold text-slate-100 mb-4">
-								Voice Agent
-							</h1>
 							<ControlPanel
 								isConnected={isConnected}
 								setIsConnected={setIsConnected}
@@ -34,8 +34,10 @@ function App() {
 							<Summarizer />
 						</div>
 					</div>
-					<div className="bg-slate-900/50 border-slate-800 rounded-lg">
-						<TranscriptionDisplay />
+					<div className="pt-[3.25rem]">
+						<div className="bg-slate-900/50 border-slate-800 rounded-lg h-full">
+							<TranscriptionDisplay />
+						</div>
 					</div>
 				</div>
 			</LiveAPIProvider>

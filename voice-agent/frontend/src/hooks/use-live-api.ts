@@ -62,7 +62,6 @@ export function useLiveAPI({
 			try {
 				if (typeof content === 'string') {
 					const parsedContent = JSON.parse(content);
-					console.log('Received content:', parsedContent); // デバッグ用
 					if (isModelTurn(parsedContent)) {
 						const audioParts = parsedContent.modelTurn.parts.filter((part) =>
 							part.inlineData?.mimeType.startsWith('audio/pcm'),
