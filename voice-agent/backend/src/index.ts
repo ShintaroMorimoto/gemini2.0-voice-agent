@@ -131,7 +131,7 @@ const vertexAudioState: AudioState = {
 
 // 音声検出の設定値
 const SILENCE_THRESHOLD = 700; // これ以上のRMS値があれば音声と判断
-const MIN_SILENCE_FRAMES = 20; // 無音判定に必要な連続フレーム数
+const MIN_SILENCE_FRAMES = 15; // 無音判定に必要な連続フレーム数
 const MIN_VOICE_FRAMES = 20; // ノイズ除去のための最小発話フレーム数
 
 // 音声処理状態のリセット
@@ -211,7 +211,6 @@ const processSpeechToText = async (audioBuffer: Buffer) => {
 const processVertexAIAudioToText = async (audioBuffer: Buffer) => {
 	try {
 		console.log('Processing Vertex AI audio...');
-		console.log('Audio buffer size:', audioBuffer.length);
 
 		const request = {
 			audio: {
@@ -766,9 +765,7 @@ clientWs.on('message', async (message) => {
 			// interruptedイベント時に音声認識を実行してからバッファをクリア
 			if (vertexAudioState.buffer.length > 0) {
 				console.log('Processing accumulated Vertex AI audio at interrupt');
-				console.log('Buffer size:', vertexAudioState.buffer.length);
 				const combinedBuffer = Buffer.concat(vertexAudioState.buffer);
-				console.log('Combined buffer size:', combinedBuffer.length);
 				await processVertexAIAudioToText(combinedBuffer);
 			}
 			vertexAudioState.buffer = []; // バッファをクリア
@@ -780,9 +777,7 @@ clientWs.on('message', async (message) => {
 			// turnComplete時に音声認識を実行
 			if (vertexAudioState.buffer.length > 0) {
 				console.log('Processing accumulated Vertex AI audio at turn complete');
-				console.log('Buffer size:', vertexAudioState.buffer.length);
 				const combinedBuffer = Buffer.concat(vertexAudioState.buffer);
-				console.log('Combined buffer size:', combinedBuffer.length);
 				await processVertexAIAudioToText(combinedBuffer);
 				vertexAudioState.buffer = []; // バッファをクリア
 			}

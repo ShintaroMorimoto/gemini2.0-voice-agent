@@ -73,7 +73,6 @@ export function useLiveAPI({
 							}
 						}
 					} else if (parsedContent.type === 'transcription') {
-						console.log('Received transcription:', parsedContent); // デバッグ用
 						// transcriptionTextの更新
 						setTranscriptionText((prevText) => {
 							const prefix =
