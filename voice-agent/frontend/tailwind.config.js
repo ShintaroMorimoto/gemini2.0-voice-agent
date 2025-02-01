@@ -2,6 +2,7 @@
 module.exports = {
 	darkMode: ["class"],
 	content: ["./src/**/*.{ts,tsx}"],
+	
 	theme: {
     	container: {
     		center: true,
@@ -82,7 +83,29 @@ module.exports = {
     		}
     	}
     },
-	plugins: [require("tailwindcss-animate")],
-  }
-  
-  
+	plugins: [
+		require("tailwindcss-animate"),
+		function({ addUtilities }) {
+			addUtilities({
+				'.hidden-scrollbar': {
+					'-ms-overflow-style': 'none',
+					'scrollbar-width': 'none',
+					'&::-webkit-scrollbar': {
+						display: 'none'
+					}
+				}
+			})
+		}
+	],
+	layer: {
+		utilities: {
+			'.hidden-scrollbar': {
+				'-ms-overflow-style': 'none',
+				'scrollbar-width': 'none',
+				'&::-webkit-scrollbar': {
+					display: 'none'
+				}
+			}
+		}
+	}
+}

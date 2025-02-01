@@ -1,4 +1,5 @@
-import { Bot, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LiveAPIContext } from '../contexts/LiveAPIContext';
 
@@ -51,40 +52,37 @@ export default function Transcript() {
 	}, [messages]);
 
 	return (
-		<div className="fixed top-0 right-0 w-1/2 h-screen bg-gray-900 text-white p-4 overflow-hidden">
-			<h2 className="text-xl font-bold mb-4">Conversation</h2>
-			<div
-				ref={transcriptRef}
-				className="h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-4 scrollbar-hide"
-			>
-				{messages.map((message, index) => (
-					<div
-						key={index}
-						className={`flex items-start space-x-2 ${message.role === 'user_ui' ? 'justify-start' : 'justify-end'}`}
-					>
-						{message.role === 'user_ui' && (
-							<User className="w-6 h-6 mt-1 text-blue-500 flex-shrink-0" />
-						)}
+		<div className="p-6">
+			<h2 className="text-xl font-bold mb-6 text-slate-100">Conversation</h2>
+			<ScrollArea className="h-[600px] pr-4">
+				<div className="space-y-4">
+					{messages.map((message, index) => (
 						<div
-							className={`max-w-[80%] p-3 rounded-lg ${
-								message.role === 'user_ui'
-									? 'bg-blue-500 text-white'
-									: 'bg-green-500 text-white'
-							}`}
+							key={index}
+							className={`flex ${message.role === 'user_ui' ? 'justify-start' : 'justify-end'}`}
 						>
-							<p className="text-sm whitespace-pre-wrap">
-								{message.content || ''}
-							</p>
-							<p className="text-xs opacity-75 mt-1">
-								{message.timestamp.toLocaleTimeString()}
-							</p>
+							<div
+								className={`
+									relative max-w-[80%] rounded-lg p-4 text-sm
+									${
+										message.role === 'assistant_ui'
+											? 'bg-emerald-600/20 text-emerald-100'
+											: 'bg-blue-600/20 text-blue-100'
+									}
+								`}
+							>
+								<p className="whitespace-pre-wrap">{message.content}</p>
+								<Badge
+									variant="secondary"
+									className="absolute -bottom-2 right-2 bg-slate-800/90 text-xs"
+								>
+									{message.timestamp.toLocaleTimeString()}
+								</Badge>
+							</div>
 						</div>
-						{message.role === 'assistant_ui' && (
-							<Bot className="w-6 h-6 mt-1 text-green-500 flex-shrink-0" />
-						)}
-					</div>
-				))}
-			</div>
+					))}
+				</div>
+			</ScrollArea>
 		</div>
 	);
 }

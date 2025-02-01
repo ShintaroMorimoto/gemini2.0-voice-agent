@@ -6,14 +6,12 @@ function SummarizerComponent() {
 	const { summaryText } = useLiveAPIContext();
 
 	return (
-		<div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-md flex-grow overflow-auto">
-			<h2 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
-				Conversation Summary
-			</h2>
-			{/* <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-			 */}
-			<div className="text-sm leading-relaxed text-gray-600 dark:text-gray-400 prose dark:prose-invert max-w-none">
-				<ReactMarkdown className="markdown">{summaryText || 'Summary will be displayed here'}</ReactMarkdown>
+		<div>
+			<h2 className="text-xl font-bold mb-4 text-slate-100">Summary</h2>
+			<div className="text-sm text-slate-400">
+				<ReactMarkdown className="markdown">
+					{summaryText || 'Summary will be displayed here'}
+				</ReactMarkdown>
 			</div>
 		</div>
 	);
