@@ -51,36 +51,36 @@ export default function Transcript() {
 	}, [messages]);
 
 	return (
-		<div className="h-screen bg-gray-900 text-white p-4 overflow-hidden w-full">
-			<h2 className="text-xl font-bold mb-4 text-gray-200">Conversation</h2>
+		<div className="h-screen bg-gray-900 text-gray-100 p-6 overflow-hidden w-full">
+			<h2 className="text-xl font-bold mb-6 text-gray-200">Conversation</h2>
 			<div
 				ref={transcriptRef}
-				className="h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-4 scrollbar-hide"
+				className="h-[calc(100vh-8rem)] overflow-y-auto pr-4 space-y-6 scrollbar-hide"
 			>
 				{messages.map((message, index) => (
 					<div
 						key={index}
-						className={`flex items-start space-x-2 ${message.role === 'user_ui' ? 'justify-start' : 'justify-end'}`}
+						className={`flex items-start space-x-4 ${message.role === 'user_ui' ? 'justify-start' : 'justify-end'}`}
 					>
 						{message.role === 'user_ui' && (
-							<User className="w-6 h-6 mt-1 text-blue-500 flex-shrink-0" />
+							<User className="w-6 h-6 mt-2 text-blue-700 flex-shrink-0" />
 						)}
 						<div
-							className={`max-w-[80%] p-3 rounded-lg ${
+							className={`max-w-[80%] p-4 rounded-lg ${
 								message.role === 'user_ui'
-									? 'bg-blue-500 text-white'
-									: 'bg-green-500 text-white'
+									? 'bg-blue-900 text-gray-100 mb-3'
+									: 'bg-green-900 text-gray-100 mb-3'
 							}`}
 						>
 							<p className="text-sm whitespace-pre-wrap">
 								{message.content || ''}
 							</p>
-							<p className="text-xs opacity-75 mt-1">
+							<p className="text-xs opacity-70 mt-1">
 								{message.timestamp.toLocaleTimeString()}
 							</p>
 						</div>
 						{message.role === 'assistant_ui' && (
-							<Bot className="w-6 h-6 mt-1 text-green-500 flex-shrink-0" />
+							<Bot className="w-6 h-6 mt-2 text-green-700 flex-shrink-0" />
 						)}
 					</div>
 				))}

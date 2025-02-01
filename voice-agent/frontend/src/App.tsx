@@ -17,7 +17,7 @@ function App() {
 	return (
 		<div className="flex h-screen bg-gray-900">
 			<LiveAPIProvider url={uri}>
-				<div className="w-1/4 p-4 bg-gray-800 flex flex-col">
+				<div className="w-1/3 p-4 bg-gray-800 flex flex-col">
 					<div>
 						<h1 className="text-2xl font-bold text-gray-200 mb-4">
 							Voice Agent
@@ -33,7 +33,7 @@ function App() {
 						</div>
 					</div>
 				</div>
-				<div className="w-3/4">
+				<div className="w-2/3">
 					<TranscriptionDisplay />
 				</div>
 			</LiveAPIProvider>

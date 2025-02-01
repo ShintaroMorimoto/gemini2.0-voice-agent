@@ -78,8 +78,8 @@ function ControlPanel({
 	};
 
 	return (
-		<div className="flex flex-col">
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+		<div className="flex flex-col mb-10">
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
 				<TooltipProvider>
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -87,8 +87,8 @@ function ControlPanel({
 								onClick={handleConnect}
 								className={`w-full transition-colors ${
 									isConnected
-										? 'bg-green-500 hover:bg-green-600'
-										: 'bg-blue-500 hover:bg-blue-600'
+										? 'bg-green-800 hover:bg-green-900'
+										: 'bg-blue-800 hover:bg-blue-900'
 								}`}
 								disabled={isLoading}
 							>
@@ -116,7 +116,7 @@ function ControlPanel({
 								onClick={handleMicToggle}
 								className={`w-full transition-colors ${
 									isMicOn
-										? 'bg-red-500 hover:bg-red-600'
+										? 'bg-red-800 hover:bg-red-900'
 										: 'bg-gray-500 hover:bg-gray-600'
 								}`}
 								disabled={!isConnected}
@@ -137,7 +137,7 @@ function ControlPanel({
 					</Tooltip>
 				</TooltipProvider>
 			</div>
-			<div className="mb-2 text-sm font-medium text-gray-200">
+			<div className="mb-4 text-sm font-medium text-gray-200">
 				Status: {status}
 			</div>
 		</div>
