@@ -1,11 +1,6 @@
 import { Bot, User } from 'lucide-react';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LiveAPIContext } from '../contexts/LiveAPIContext';
-/*
-interface TranscriptProps {
-	isConnected: boolean;
-}
-*/
 
 interface Message {
 	role: 'user_ui' | 'assistant_ui';

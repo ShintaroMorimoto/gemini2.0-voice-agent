@@ -131,8 +131,8 @@ const vertexAudioState: AudioState = {
 
 // 音声検出の設定値
 const SILENCE_THRESHOLD = 700; // これ以上のRMS値があれば音声と判断
-const MIN_SILENCE_FRAMES = 10; // 無音判定に必要な連続フレーム数
-const MIN_VOICE_FRAMES = 5; // ノイズ除去のための最小発話フレーム数
+const MIN_SILENCE_FRAMES = 15; // 無音判定に必要な連続フレーム数
+const MIN_VOICE_FRAMES = 10; // ノイズ除去のための最小発話フレーム数
 
 // 音声処理状態のリセット
 const resetAudioState = () => {
@@ -616,7 +616,18 @@ const summarize = async (conversation_history: string) => {
 	const apiEndpoint = `${apiHost}/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
 
 	const query = `\
-		以下の文章を要約してください。\
+		会話内容を要約してください。
+		出力は以下のようなマークダウン形式で、箇条書きにしてください。
+
+		形式の例
+		### だれが使うシステムなのか
+		- 使う人が誰かをここに記載
+		### どんなときに使われるシステム
+		- システムがどんなときに使われるかをここに記載
+		### どんな機能が必要なのか
+		- 必要な機能をここに記載
+
+		以下が要約してほしい会話内容です。
 		${conversation_history}`;
 
 	const data = {
