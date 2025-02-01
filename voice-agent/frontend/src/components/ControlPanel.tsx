@@ -1,14 +1,7 @@
-import { Button } from '@/components/ui/button';
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
 import { AudioRecorder } from '@/lib/audio-recorder';
 import { Mic, MicOff, Power } from 'lucide-react';
-import { memo, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ControlPanelProps {
 	isConnected: boolean;
@@ -17,7 +10,7 @@ interface ControlPanelProps {
 	setIsMicOn: (isMicOn: boolean) => void;
 }
 
-function ControlPanel({
+export default function ControlPanel({
 	isConnected,
 	setIsConnected,
 	isMicOn,
@@ -73,75 +66,50 @@ function ControlPanel({
 		if (!isMicOn) {
 			setStatus('Connected, Mic is now On');
 		} else {
-			setStatus('Connected, Mic is now Off');
+			setStatus('Connected');
 		}
 	};
 
 	return (
-		<div className="flex flex-col mb-10">
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
-				<TooltipProvider>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								onClick={handleConnect}
-								className={`w-full transition-colors ${
-									isConnected
-										? 'bg-green-800 hover:bg-green-900'
-										: 'bg-blue-800 hover:bg-blue-900'
-								}`}
-								disabled={isLoading}
-							>
-								{isLoading ? (
-									<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-								) : (
-									<Power className="mr-2 h-4 w-4" />
-								)}
-								{isConnected ? 'Disconnect' : 'Connect'}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>
-							<p>
-								{isConnected
-									? 'End the conversation'
-									: 'Start a new conversation'}
-							</p>
-						</TooltipContent>
-					</Tooltip>
-				</TooltipProvider>
-				<TooltipProvider>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								onClick={handleMicToggle}
-								className={`w-full transition-colors ${
-									isMicOn
-										? 'bg-red-800 hover:bg-red-900'
-										: 'bg-gray-500 hover:bg-gray-600'
-								}`}
-								disabled={!isConnected}
-							>
-								{isMicOn ? (
-									<MicOff className="mr-2 h-4 w-4" />
-								) : (
-									<Mic className="mr-2 h-4 w-4" />
-								)}
-								{isMicOn ? 'Mic Off' : 'Mic On'}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>
-							<p>
-								{isMicOn ? 'Turn off the microphone' : 'Turn on the microphone'}
-							</p>
-						</TooltipContent>
-					</Tooltip>
-				</TooltipProvider>
+		<div>
+			<div className="flex gap-2 mb-4">
+				<button
+					onClick={handleConnect}
+					disabled={isLoading}
+					className={`flex items-center justify-center gap-2 px-4 py-2 rounded text-sm font-medium transition-colors w-full
+						${
+							isConnected
+								? 'bg-red-500 hover:bg-red-600 text-white'
+								: 'bg-gray-800 hover:bg-gray-700 text-white'
+						}`}
+				>
+					<Power className="h-4 w-4" />
+					{isConnected ? 'Disconnect' : 'Connect'}
+				</button>
+				<button
+					onClick={handleMicToggle}
+					disabled={!isConnected}
+					className={`flex items-center justify-center gap-2 px-4 py-2 rounded text-sm font-medium transition-colors w-full
+						${
+							isMicOn
+								? 'bg-red-500 hover:bg-red-600 text-white'
+								: 'bg-gray-800 hover:bg-gray-700 text-white'
+						}`}
+				>
+					{isMicOn ? (
+						<MicOff className="h-4 w-4" />
+					) : (
+						<Mic className="h-4 w-4" />
+					)}
+					{isMicOn ? 'Mic Off' : 'Mic On'}
+				</button>
 			</div>
-			<div className="mb-4 text-sm font-medium text-gray-200">
-				Status: {status}
+			<div className="flex items-center gap-2 text-sm text-gray-300">
+				<div
+					className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+				/>
+				<span>Status: {status}</span>
 			</div>
 		</div>
 	);
 }
-
-export default memo(ControlPanel);
