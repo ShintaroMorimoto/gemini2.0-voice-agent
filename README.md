@@ -2,19 +2,17 @@
 
 Zenn × Google Cloud の 生成 AI エージェントハッカソン提出用
 
-# デモ
+## デモ
 
 - Demo video
 
-# 概要
+## 概要
 
-# ディレクトリ構造
+## ディレクトリ構造
 
-#
+## クイックスタート
 
-# クイックスタート
-
-## ローカル
+### ローカル
 
 1. リポジトリのクローン
 
@@ -57,7 +55,7 @@ gcloud auth application-default login
 npm run dev
 ```
 
-## Cloud Run へのデプロイ
+### Cloud Run へのデプロイ
 
 ```sh
 gcloud run deploy --project=YOUR-PROJECT-ID \
