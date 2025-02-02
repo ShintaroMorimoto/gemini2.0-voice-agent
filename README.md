@@ -1,11 +1,7 @@
-# 概要
+## リポジトリの概要
 
-- Zenn × Google Cloud の 生成 AI エージェントハッカソン提出用
+- [AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/2024-google-cloud-japan-ai-hackathon) 提出用
 - [紹介記事]()
-
-## デモ
-
-- Demo video
 
 ## Web アプリの概要
 
@@ -19,6 +15,10 @@
   - 初期設定は中途採用で募集したいポジションの詳細
 - 発言内容をリアルタイムで表示
 - 会話終了時にはその内容の要約を表示
+
+### デモ
+
+- Demo video
 
 ## クイックスタート
 

@@ -362,7 +362,7 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 	const wss = new WebSocketServer({ noServer: true });
 	const waiter = new Map<IncomingMessage, (ws: WebSocket) => void>();
 
-	wss.on('connection', (ws, request) => {
+	wss.on('connection', (ws: WebSocket, request: IncomingMessage) => {
 		const waiterFn = waiter.get(request);
 		if (waiterFn) {
 			waiterFn(ws);
@@ -399,7 +399,7 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 						{ headers: headers },
 						{ incoming: request, outgoing: undefined },
 					);
-					wss.handleUpgrade(request, socket, head, (ws) => {
+					wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
 						wss.emit('connection', ws, request);
 					});
 				});
@@ -773,7 +773,6 @@ clientWs.on('message', async (message) => {
 	const response: LiveIncomingMessage = (await JSON.parse(
 		message.toString(),
 	)) as LiveIncomingMessage;
-	console.log('receive', response);
 
 	if (isToolCallMessage(response)) {
 		const summarizeFunctionCall = response.toolCall.functionCalls.find(
