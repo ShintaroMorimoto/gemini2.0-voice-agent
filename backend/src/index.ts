@@ -1,4 +1,4 @@
-import { SpeechClient, protos } from '@google-cloud/speech';
+import { SpeechClient } from '@google-cloud/speech';
 import type { Part } from '@google/generative-ai';
 import { SchemaType, type FunctionDeclaration } from '@google/generative-ai';
 import { serve } from '@hono/node-server';
@@ -14,6 +14,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import WebSocket, { WebSocketServer } from 'ws';
 
+import { SpeechService } from './services/speech.js';
+import { SummarizeService } from './services/summarize.js';
 import type { AudioState } from './types/audio.d.ts';
 
 import {
@@ -85,24 +87,7 @@ const processSpeechToText = async (audioBuffer: Buffer) => {
 
 	try {
 		userAudioState.isProcessing = true;
-		const request = {
-			audio: {
-				content: audioBuffer,
-			},
-			config: {
-				encoding:
-					protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding
-						.LINEAR16,
-				sampleRateHertz: 16000,
-				languageCode: 'ja-JP',
-			},
-			interimResults: false,
-		};
-
-		const [response] = await speechClient.recognize(request);
-		const transcription = response.results
-			?.map((result) => result.alternatives?.[0]?.transcript)
-			.join('\n');
+		const transcription = await speechService.processSpeechToText(audioBuffer);
 
 		if (transcription) {
 			console.log('User transcription:', transcription);
@@ -117,11 +102,7 @@ const processSpeechToText = async (audioBuffer: Buffer) => {
 			);
 		}
 	} catch (error) {
-		if (error instanceof Error) {
-			console.error('Speech-to-Text error:', error.message);
-		} else {
-			console.error('Speech-to-Text error:', error);
-		}
+		console.error('Speech-to-Text error:', error);
 	} finally {
 		resetAudioState();
 		console.log('User audio state reset after processing');
@@ -132,27 +113,8 @@ const processSpeechToText = async (audioBuffer: Buffer) => {
 const processVertexAIAudioToText = async (audioBuffer: Buffer) => {
 	try {
 		console.log('Processing Vertex AI audio...');
-
-		const request = {
-			audio: {
-				content: audioBuffer.toString('base64'),
-			},
-			config: {
-				encoding:
-					protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding
-						.LINEAR16,
-				sampleRateHertz: 24000,
-				languageCode: 'ja-JP',
-				enableAutomaticPunctuation: true,
-				model: 'default',
-				useEnhanced: true,
-			},
-		};
-
-		const [response] = await speechClient.recognize(request);
-		const transcription = response.results
-			?.map((result) => result.alternatives?.[0]?.transcript)
-			.join('\n');
+		const transcription =
+			await speechService.processVertexAIAudioToText(audioBuffer);
 
 		if (transcription) {
 			console.log('VAI transcription:', transcription);
@@ -175,11 +137,7 @@ const processVertexAIAudioToText = async (audioBuffer: Buffer) => {
 			console.log('No transcription result from Vertex AI audio');
 		}
 	} catch (error) {
-		if (error instanceof Error) {
-			console.error('Vertex AI Speech-to-Text error:', error.message);
-		} else {
-			console.error('Vertex AI Speech-to-Text error:', error);
-		}
+		console.error('Vertex AI Speech-to-Text error:', error);
 	}
 };
 
@@ -457,6 +415,10 @@ if (!version) {
 	throw new Error('VERSION is not set');
 }
 
+// サービスのインスタンス化
+const speechService = new SpeechService();
+const summarizeService = new SummarizeService(project, location);
+
 const auth = new GoogleAuth({
 	scopes: ['https://www.googleapis.com/auth/cloud-platform'],
 });
@@ -653,7 +615,9 @@ clientWs.on('message', async (message) => {
 				console.log('No conversation to summarize');
 				return;
 			}
-			const summary = await summarize(currentTranscriptionText);
+			const summary = await summarizeService.summarize(
+				currentTranscriptionText,
+			);
 			serverWs.send(
 				JSON.stringify({
 					type: 'toolResponse',
