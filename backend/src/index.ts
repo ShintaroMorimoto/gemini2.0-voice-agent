@@ -1,13 +1,6 @@
 import { SpeechClient, protos } from '@google-cloud/speech';
-import type {
-	Content,
-	FunctionCall,
-	GenerationConfig,
-	GenerativeContentBlob,
-	Part,
-	Tool,
-} from '@google/generative-ai';
-import { type FunctionDeclaration, SchemaType } from '@google/generative-ai';
+import type { Part } from '@google/generative-ai';
+import { SchemaType, type FunctionDeclaration } from '@google/generative-ai';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import * as dotenv from 'dotenv';
@@ -20,101 +13,34 @@ import type { Http2SecureServer, Http2Server } from 'node:http2';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import WebSocket, { WebSocketServer } from 'ws';
-export type LiveGenerationConfig = GenerationConfig & {
-	responseModalities: 'text' | 'audio' | 'image';
-	speechConfig?: {
-		voiceConfig?: {
-			prebuiltVoiceConfig?: {
-				voiceName: 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Aoede' | string;
-			};
-		};
-	};
-};
 
-export type LiveConfig = {
-	model: string;
-	systemInstruction?: { parts: Part[] };
-	generationConfig?: Partial<LiveGenerationConfig>;
-	tools?: Array<Tool | { googleSearch: {} } | { codeExecution: {} }>;
-};
+import type { AudioState } from './types/audio.d.ts';
 
-export type SetupMessage = {
-	setup: LiveConfig;
-};
+import {
+	isInterrupted,
+	isModelTurn,
+	isServerContentMessage,
+	isToolCallCancellationMessage,
+	isToolCallMessage,
+	isTurnComplete,
+} from './types/type-guards.js';
 
-export type RealtimeInputMessage = {
-	realtimeInput: {
-		mediaChunks: GenerativeContentBlob[];
-	};
-};
+import type {
+	GeminiResponse,
+	LiveIncomingMessage,
+	ModelTurn,
+	RealtimeInputMessage,
+	SetupMessage,
+	ToolResponseMessage,
+} from './types/multimodal-live-api.d.ts';
 
-export type ClientContentMessage = {
-	clientContent: {
-		turns: Content[];
-		turnComplete: boolean;
-	};
-};
-export type ModelTurn = {
-	modelTurn: {
-		parts: Part[];
-	};
-};
-
-export type TurnComplete = { turnComplete: boolean };
-
-export type Interrupted = { interrupted: true };
-
-export type ServerContent = ModelTurn | TurnComplete | Interrupted;
-
-export type ServerContentMessage = {
-	serverContent: ServerContent;
-};
-
-export type LiveFunctionCall = FunctionCall & {
-	id: string;
-};
-
-export type ToolCall = {
-	functionCalls: LiveFunctionCall[];
-};
-
-export type ToolCallCancellationMessage = {
-	toolCallCancellation: {
-		ids: string[];
-	};
-};
-
-export type ToolCallCancellation =
-	ToolCallCancellationMessage['toolCallCancellation'];
-
-export type ToolCallMessage = {
-	toolCall: ToolCall;
-};
-export type LiveIncomingMessage =
-	| ServerContentMessage
-	| ToolCallCancellationMessage
-	| ToolCallMessage;
-
-export type LiveFunctionResponse = {
-	response: object;
-	id: string;
-};
-
-export type ToolResponseMessage = {
-	toolResponse: {
-		functionResponses: LiveFunctionResponse[];
-	};
-};
-// 音声処理の状態管理用の型定義
-type AudioState = {
-	isRecording: boolean;
-	buffer: Buffer[];
-	silenceCount: number;
-	isProcessing: boolean;
-};
+// 音声検出の設定値
+const SILENCE_THRESHOLD = 700; // これ以上のRMS値があれば音声と判断
+const MIN_SILENCE_FRAMES = 15; // 無音判定に必要な連続フレーム数
+const MIN_VOICE_FRAMES = 10; // ノイズ除去のための最小発話フレーム数
 
 // ユーザー音声用の状態管理
-const userAudioState: AudioState = {
+export const userAudioState: AudioState = {
 	isRecording: false,
 	buffer: [],
 	silenceCount: 0,
@@ -122,17 +48,12 @@ const userAudioState: AudioState = {
 };
 
 // Vertex AI音声用の状態管理
-const vertexAudioState: AudioState = {
+export const vertexAudioState: AudioState = {
 	isRecording: false,
 	buffer: [],
 	silenceCount: 0,
 	isProcessing: false,
 };
-
-// 音声検出の設定値
-const SILENCE_THRESHOLD = 700; // これ以上のRMS値があれば音声と判断
-const MIN_SILENCE_FRAMES = 15; // 無音判定に必要な連続フレーム数
-const MIN_VOICE_FRAMES = 20; // ノイズ除去のための最小発話フレーム数
 
 // 音声処理状態のリセット
 const resetAudioState = () => {
@@ -277,38 +198,6 @@ const detectVoiceActivity = (buffer: Buffer): boolean => {
 
 	return rms > SILENCE_THRESHOLD;
 };
-
-const prop = (a: any, prop: string, kind = 'object') =>
-	typeof a === 'object' && typeof a[prop] === 'object';
-
-export const isServerContentMessage = (a: any): a is ServerContentMessage =>
-	prop(a, 'serverContent');
-
-export const isToolResponseMessage = (a: unknown): a is ToolResponseMessage =>
-	prop(a, 'toolResponse');
-
-export const isToolCallMessage = (a: any): a is ToolCallMessage =>
-	prop(a, 'toolCall');
-
-export const isToolCallCancellation = (
-	a: unknown,
-): a is ToolCallCancellationMessage['toolCallCancellation'] =>
-	typeof a === 'object' && Array.isArray((a as any).ids);
-
-export const isToolCallCancellationMessage = (
-	a: unknown,
-): a is ToolCallCancellationMessage =>
-	prop(a, 'toolCallCancellation') &&
-	isToolCallCancellation((a as any).toolCallCancellation);
-
-export const isModelTurn = (a: any): a is ModelTurn =>
-	typeof (a as ModelTurn).modelTurn === 'object';
-
-export const isTurnComplete = (a: any): a is TurnComplete =>
-	typeof (a as TurnComplete).turnComplete === 'boolean';
-
-export const isInterrupted = (a: any): a is Interrupted =>
-	(a as Interrupted).interrupted;
 
 interface CloseEventInit extends EventInit {
 	code?: number;
@@ -590,28 +479,6 @@ const clientWs = new WebSocket(
 	},
 );
 
-// Gemini APIのレスポンス型定義
-interface GeminiResponse {
-	candidates: Array<{
-		content: {
-			role: string;
-			parts: Array<{
-				text: string;
-			}>;
-		};
-		finishReason: string;
-		avgLogprobs: number;
-	}>;
-	usageMetadata: {
-		promptTokenCount: number;
-		candidatesTokenCount: number;
-		totalTokenCount: number;
-	};
-	modelVersion: string;
-	createTime: string;
-	responseId: string;
-}
-
 const summarize = async (conversation_history: string) => {
 	const project = process.env.PROJECT;
 	const location = process.env.LOCATION;
@@ -707,7 +574,7 @@ const instructions = `\
 	- キャリアパス(成果を出していくと、どのようなキャリアパスがあるか) \
 	\
 	## ヒアリングで意識してほしい点 \
-	- 「なぜその業務をやるのか」「なぜその経験が必要なのか」といった、目的や背景を深堀りする質問をしてください。\
+	- "なぜその業務をやるのか" "なぜその経験が必要なのか"といった、目的や背景を深堀りする質問をしてください。\
 	- クライアントから抽象的な回答があった場合は、それを具体化(定量化)する深堀り質問をしてください。\
 	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなるような問いかけをしてください。\
 	\
@@ -724,18 +591,17 @@ const sampleInstructions = `\
 	まず第一声として「本日はお時間ありがとうございます。早速ですが今日採用したいポジションについて教えていただけますか？」と言ってください。
 	## 以下が明確になるまで、ヒアリングを続けてください。\
 	- 採用したいポジションの名前 \
-	- 募集背景(なぜ採用したいのか) \
 	\
 	## ヒアリングで意識してほしい点 \
-	- 「なぜその業務をやるのか」「なぜその経験が必要なのか」といった、目的や背景を深堀りする質問をしてください。\
+	- "なぜその業務をやるのか" "なぜその経験が必要なのか"といった、目的や背景を深堀りする質問をしてください。\
 	- クライアントから抽象的な回答があった場合は、それを具体化(定量化)する深堀り質問をしてください。\
 	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなるような問いかけをしてください
 	\
 	## ツールの使用 \
 	- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。
 		- ヒアリング内容は、画面左側に表示されます。\
-	- 要約したヒアリング内容について、クライアントとの認識齟齬がないか確認してください。\
-		- 認識齟齬がある場合はヒアリングを再開して、summarizeツールを再度実行してください。\
+	- 要約したヒアリング内容について、クライアントとの認識にズレがないか確認してください。\
+		- ズレがある場合はヒアリングを再開し、終わったらsummarizeツールを必ず再使用してください。\
 	`;
 
 const setUpPrompt = `\
