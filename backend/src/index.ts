@@ -498,10 +498,6 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 											} else if (userAudioState.isRecording) {
 												userAudioState.silenceCount++;
 												userAudioState.buffer.push(buffer);
-												// console.log(
-												// 'Silence detected, count:',
-												// userAudioState.silenceCount,
-												// );
 
 												if (userAudioState.silenceCount >= MIN_SILENCE_FRAMES) {
 													if (
@@ -560,8 +556,17 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
 const project = process.env.PROJECT;
+if (!project) {
+	throw new Error('PROJECT is not set');
+}
 const location = process.env.LOCATION;
+if (!location) {
+	throw new Error('LOCATION is not set');
+}
 const version = process.env.VERSION;
+if (!version) {
+	throw new Error('VERSION is not set');
+}
 
 const auth = new GoogleAuth({
 	scopes: ['https://www.googleapis.com/auth/cloud-platform'],
@@ -608,8 +613,8 @@ interface GeminiResponse {
 }
 
 const summarize = async (conversation_history: string) => {
-	const project = 'sandbox-morimoto-s1';
-	const location = 'us-central1';
+	const project = process.env.PROJECT;
+	const location = process.env.LOCATION;
 	const apiHost = `${location}-aiplatform.googleapis.com`;
 	const modelId = 'gemini-2.0-flash-exp';
 	const apiEndpoint = `${apiHost}/v1/projects/${project}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
@@ -619,12 +624,18 @@ const summarize = async (conversation_history: string) => {
 		出力は以下のようなマークダウン形式で、箇条書きにしてください。
 
 		形式の例
-		### だれが使うシステムなのか
-		- 使う人が誰かをここに記載
-		### どんなときに使われるシステム
-		- システムがどんなときに使われるかをここに記載
-		### どんな機能が必要なのか
-		- 必要な機能をここに記載
+		### 採用したいポジションの名前
+		- 採用したいポジションの名前をここに記載
+		### 募集背景(なぜ採用したいのか)
+		- 募集背景をここに記載
+		### 具体的な業務内容
+		- 具体的な業務内容をここに記載
+		### 採用したい人の特徴(スキルや経験、正確など)
+		- 採用したい人の特徴をここに記載
+		### ポジションの魅力(成長機会や他社との違いなど)
+		- ポジションの魅力をここに記載
+		### キャリアパス(成果を出していくと、どのようなキャリアパスがあるか)
+		- キャリアパスをここに記載
 
 		以下が要約してほしい会話内容です。
 		${conversation_history}`;
@@ -682,6 +693,59 @@ const summarizeFunctionDeclaration: FunctionDeclaration = {
 		required: ['conversation_history'],
 	},
 };
+
+const persona = '中途採用のプロフェッショナル';
+/*
+const instructions = `\
+	クライアントが採用したいポジションについて、ヒアリングを行ってください。\
+	## 以下が明確になるまで、ヒアリングを続けてください。\
+	- 採用したいポジションの名前 \
+	- 募集背景(なぜ採用したいのか) \
+	- 具体的な業務内容 \
+	- 採用したい人の特徴(スキルや経験、正確など) \
+	- ポジションの魅力(成長機会や他社との違いなど) \
+	- キャリアパス(成果を出していくと、どのようなキャリアパスがあるか) \
+	\
+	## ヒアリングで意識してほしい点 \
+	- 「なぜその業務をやるのか」「なぜその経験が必要なのか」といった、目的や背景を深堀りする質問をしてください。\
+	- クライアントから抽象的な回答があった場合は、それを具体化(定量化)する深堀り質問をしてください。\
+	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなるような問いかけをしてください。\
+	\
+	## ツールの使用 \
+	- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。
+		- ヒアリング内容は、画面左側に表示されます。\
+	- 要約したヒアリング内容について、クライアントとの認識齟齬がないか確認してください。\
+		- 認識齟齬がある場合はヒアリングを再開して、summarizeツールを再度実行してください。\
+	`;
+*/
+
+const sampleInstructions = `\
+	クライアントが採用したいポジションについて、ヒアリングを行ってください。\
+	まず第一声として「本日はお時間ありがとうございます。早速ですが今日採用したいポジションについて教えていただけますか？」と言ってください。
+	## 以下が明確になるまで、ヒアリングを続けてください。\
+	- 採用したいポジションの名前 \
+	- 募集背景(なぜ採用したいのか) \
+	\
+	## ヒアリングで意識してほしい点 \
+	- 「なぜその業務をやるのか」「なぜその経験が必要なのか」といった、目的や背景を深堀りする質問をしてください。\
+	- クライアントから抽象的な回答があった場合は、それを具体化(定量化)する深堀り質問をしてください。\
+	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなるような問いかけをしてください
+	\
+	## ツールの使用 \
+	- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。
+		- ヒアリング内容は、画面左側に表示されます。\
+	- 要約したヒアリング内容について、クライアントとの認識齟齬がないか確認してください。\
+		- 認識齟齬がある場合はヒアリングを再開して、summarizeツールを再度実行してください。\
+	`;
+
+const setUpPrompt = `\
+	あなたは${persona}です。\
+	<instructions>
+	${sampleInstructions}
+	</instructions>
+	\
+`;
+
 clientWs.on('open', () => {
 	// SetupMessage
 	const data: SetupMessage = {
@@ -690,23 +754,7 @@ clientWs.on('open', () => {
 			systemInstruction: {
 				parts: [
 					{
-						text: '\
-            		あなたはSIerの優秀なエンジニアです。\
-					あなたはクライアントに対して、ヒアリングを行います。\
-					ヒアリング内容は、クライアントが作りたいと考えているシステムについてです。 \
-            		以下が明確になるまで、ヒアリングを続けてください。\
-            		- だれが使うシステムなのか \
-            		- どんなときに使われるシステムなのか \
-            		- どんな機能が必要なのか \
-					\
-					## ヒアリングで意識してほしい点 \
-					- 「なぜそれが必要か？」「どうしてそのとき使われるのか？」といった、目的を意識して、深堀り質問をしてください。\
-					- 抽象的な言葉を具体化する深堀り質問をしてください。\
-            		\
-					## ツールの使用 \
-					- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。\
-					- 要約したヒアリング内容について、クライアントとの認識齟齬がないか確認してください\
-					',
+						text: setUpPrompt,
 					},
 				],
 			},
@@ -725,13 +773,13 @@ clientWs.on('message', async (message) => {
 	const response: LiveIncomingMessage = (await JSON.parse(
 		message.toString(),
 	)) as LiveIncomingMessage;
+	console.log('receive', response);
 
 	if (isToolCallMessage(response)) {
-		console.log('toolCallMessage', response);
-		const fc = response.toolCall.functionCalls.find(
+		const summarizeFunctionCall = response.toolCall.functionCalls.find(
 			(fc) => fc.name === summarizeFunctionDeclaration.name,
 		);
-		if (fc) {
+		if (summarizeFunctionCall) {
 			console.log(
 				'summarize呼び出し直前のcurrentTranscriptionText',
 				currentTranscriptionText,
@@ -747,12 +795,26 @@ clientWs.on('message', async (message) => {
 					text: summary,
 				}),
 			);
+
+			// Vertex AIにツールの実行結果を返す
+			const message: ToolResponseMessage = {
+				toolResponse: {
+					functionResponses: [
+						{
+							response: { output: { success: true } },
+							id: summarizeFunctionCall.id,
+						},
+					],
+				},
+			};
+			console.log('send', message);
+			clientWs.send(JSON.stringify(message));
 		}
 		return;
 	}
 
 	if (isToolCallCancellationMessage(response)) {
-		// TODO: ここの処理も作る必要あり
+		// TODO: ここの処理もいつか作る
 		// toolcallがキャンセルされたときの処理
 		return;
 	}
