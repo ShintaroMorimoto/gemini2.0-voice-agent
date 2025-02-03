@@ -68,7 +68,10 @@ export default function Transcript() {
 		<div className="p-6">
 			<h2 className="text-xl font-bold mb-6 text-slate-100">Conversation</h2>
 			<ScrollAreaPrimitive.Root className="h-[600px] pr-4 relative overflow-hidden">
-				<ScrollAreaPrimitive.Viewport ref={viewportRef} className="h-full w-full rounded-[inherit]">
+				<ScrollAreaPrimitive.Viewport
+					ref={viewportRef}
+					className="h-full w-full rounded-[inherit]"
+				>
 					<div className="space-y-4">
 						{messages.map((message, index) => (
 							<div

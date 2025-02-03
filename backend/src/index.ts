@@ -15,7 +15,6 @@ import WebSocket, { WebSocketServer } from 'ws';
 
 import { SpeechService } from './services/speech.js';
 import { SummarizeService } from './services/summarize.js';
-import type { AudioState } from './types/audio.d.ts';
 
 import {
 	isInterrupted,
@@ -35,22 +34,6 @@ import type {
 } from './types/multimodal-live-api.d.ts';
 
 import { AudioProcessor } from './audio/processor.js';
-
-// ユーザー音声用の状態管理
-export const userAudioState: AudioState = {
-	isRecording: false,
-	buffer: [],
-	silenceCount: 0,
-	isProcessing: false,
-};
-
-// Vertex AI音声用の状態管理
-export const vertexAudioState: AudioState = {
-	isRecording: false,
-	buffer: [],
-	silenceCount: 0,
-	isProcessing: false,
-};
 
 let serverWs: WebSocket;
 let audioProcessor: AudioProcessor;

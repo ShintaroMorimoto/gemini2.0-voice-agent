@@ -52,7 +52,7 @@ export class AudioProcessor {
 			if (transcription) {
 				console.log('User transcription:', transcription);
 				this.appendTranscriptionText('user_ui', transcription);
-				
+
 				// UIにメッセージを送信
 				this.serverWs.send(
 					JSON.stringify({
@@ -60,9 +60,9 @@ export class AudioProcessor {
 						role: 'user_ui',
 						content: transcription,
 						timestamp: new Date().toISOString(),
-					})
+					}),
 				);
-				
+
 				return transcription;
 			}
 		} catch (error) {
@@ -88,7 +88,7 @@ export class AudioProcessor {
 				const lastMessage = this.transcriptionText.split('\n').pop() || '';
 				if (!lastMessage.includes(transcription)) {
 					this.appendTranscriptionText('assistant_ui', transcription);
-					
+
 					// UIにメッセージを送信
 					this.serverWs.send(
 						JSON.stringify({
@@ -96,9 +96,9 @@ export class AudioProcessor {
 							role: 'assistant_ui',
 							content: transcription,
 							timestamp: new Date().toISOString(),
-						})
+						}),
 					);
-					
+
 					return transcription;
 				} else {
 					console.log('Skipping duplicate message:', transcription);
