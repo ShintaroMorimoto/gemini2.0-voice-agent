@@ -14,3 +14,12 @@ push:
 	docker push $(REGISTRY)/$(IMAGE_NAME):$(TAG)
 
 build-push: build push
+
+deploy:
+	gcloud run deploy --project=$(PROJECT) \
+		--region=$(LOCATION) \
+		--source=. \
+		--allow-unauthenticated \
+		--port=8080 \
+		--set-env-vars=PROJECT=$(PROJECT),LOCATION=${LOCATION},VERSION=v1beta1\
+		voice-agent

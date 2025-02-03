@@ -1,14 +1,24 @@
-# zenn-ai-agent-hackathon
+## リポジトリの概要
 
-Zenn × Google Cloud の 生成 AI エージェントハッカソン提出用
+- [AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/2024-google-cloud-japan-ai-hackathon) 提出用
+- [紹介記事]()
 
-## デモ
+## Web アプリの概要
+
+- ブラウザ上で Gemini 2.0 と音声で対話できます。
+
+### 機能
+
+- Connect / Disconnect ボタンで接続状態の管理
+- Mic Off / Mic On ボタンで音声入力可否の切り替え
+- 特定テーマに対して Gemini がヒアリング
+  - 初期設定は中途採用で募集したいポジションの詳細
+- 発言内容をリアルタイムで表示
+- 会話終了時にはその内容の要約を表示
+
+### デモ
 
 - Demo video
-
-## 概要
-
-## ディレクトリ構造
 
 ## クイックスタート
 
@@ -17,7 +27,7 @@ Zenn × Google Cloud の 生成 AI エージェントハッカソン提出用
 1. リポジトリのクローン
 
 ```sh
-git clone
+git clone https://github.com/ShintaroMorimoto/gemini2.0-voice-agent.git
 ```
 
 2. 依存関係のインストール(フロントエンド)
@@ -43,7 +53,7 @@ cd backend && npm ci
 ```sh
 gcloud components update
 gcloud components install beta
-gcloud config set project YOUR-PROJECT-ID
+gcloud config set project PROJECT-ID
 gcloud auth application-default login
 ```
 
@@ -67,9 +77,9 @@ const instructions = `\
 	- キャリアパス(成果を出していくと、どのようなキャリアパスがあるか) \
 	\
 	## ヒアリングで意識してほしい点 \
-	- 「なぜその業務をやるのか」「なぜその経験が必要なのか」といった、目的や背景を深堀りする質問をしてくだ
+	- "なぜその業務をやるのか" "なぜその経験が必要なのか"といった、目的や背景を深堀りする質問をしてください。\
 	- クライアントから抽象的な回答があった場合は、それを具体化(定量化)する深堀り質問をしてください。\
-	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなる
+	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなるような問いかけをしてください。\
 	\
 	## ツールの使用 \
 	- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。
@@ -95,14 +105,25 @@ npm run dev
 
 ### Cloud Run へのデプロイ
 
+1. Cloud Build のサービスアカウントへの権限付与
+
+- [公式ドキュメント](https://cloud.google.com/build/docs/deploying-builds/deploy-cloud-run?hl=ja#continuous-iam)
+
 ```sh
-gcloud run deploy --project=YOUR-PROJECT-ID \
+gcloud iam service-accounts add-iam-policy-binding \
+  PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --member="serviceAccount:PROJECT_NUMBER@cloudbuild.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+2. デプロイ
+
+```sh
+gcloud run deploy --project=PROJECT-ID \
 --region=us-central1 \
 --source=./ \
 --allow-unauthenticated \
 --port=8000  \
---set-env-vars PROJECT=YOUR-PROJECT-ID,LOCATION=us-central1,VERSION=v1beta1
+--set-env-vars=PROJECT=PROJECT-ID,LOCATION=us-central1,VERSION=v1beta1
 voice-agent
 ```
-
---set-env-vars のところはもしかしたら変数ごとに `--set-env-vars` しないとダメかも(動かして確認)

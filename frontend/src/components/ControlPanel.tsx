@@ -66,7 +66,7 @@ export default function ControlPanel({
 		if (!isMicOn) {
 			setStatus('Connected, Mic is now On');
 		} else {
-			setStatus('Connected');
+			setStatus('Connected, Mic is now Off');
 		}
 	};
 
