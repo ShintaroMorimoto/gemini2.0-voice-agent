@@ -36,6 +36,7 @@ import type {
 import { AudioProcessor } from './audio/processor.js';
 
 let serverWs: WebSocket;
+let clientWs: WebSocket | null = null;
 let audioProcessor: AudioProcessor;
 
 interface CloseEventInit extends EventInit {
@@ -173,24 +174,31 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 							try {
 								const parsedData = await JSON.parse(data.toString());
 
-								if (parsedData.type === 'transcription_update') {
-									console.log(
-										'Received transcription update:',
-										parsedData.text,
-									);
+								// 接続制御メッセージの処理を追加
+								if (parsedData.type === 'connection_control') {
+									if (parsedData.action === 'connect') {
+										await connectToVertexAI();
+										serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'connected' }));
+									} else if (parsedData.action === 'disconnect') {
+										disconnectFromVertexAI();
+										serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'disconnected' }));
+									}
+									return;
 								}
 
-								// 音声データの場合
+								// 音声データの処理
 								if (parsedData.realtimeInput?.mediaChunks) {
 									const chunks = parsedData.realtimeInput.mediaChunks;
 
 									// Vertex AIに音声データを転送
-									const realtimeInput: RealtimeInputMessage = {
-										realtimeInput: {
-											mediaChunks: chunks,
-										},
-									};
-									clientWs.send(JSON.stringify(realtimeInput));
+									if (clientWs && clientWs.readyState === WebSocket.OPEN) {
+										const realtimeInput: RealtimeInputMessage = {
+											realtimeInput: {
+												mediaChunks: chunks,
+											},
+										};
+										clientWs.send(JSON.stringify(realtimeInput));
+									}
 
 									// ユーザーの音声認識処理
 									for (const chunk of chunks) {
@@ -206,22 +214,20 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 											}
 
 											if (!chunk.mimeType.includes('audio/pcm')) {
-												console.log(
-													'Unsupported audio format:',
-													chunk.mimeType,
-												);
+												console.log('Unsupported audio format:', chunk.mimeType);
 												continue;
 											}
 
 											const buffer = Buffer.from(chunk.data, 'base64');
 											audioProcessor.handleUserAudioChunk(buffer);
 										} catch (error) {
-											console.error(
-												'Error processing user audio chunk:',
-												error,
-											);
+											console.error('Error processing user audio chunk:', error);
 										}
 									}
+								}
+
+								if (parsedData.type === 'transcription_update') {
+									console.log('Received transcription update:', parsedData.text);
 								}
 							} catch (error) {
 								console.error('Error parsing WebSocket message:', error);
@@ -268,27 +274,160 @@ if (!version) {
 const speechService = new SpeechService();
 const summarizeService = new SummarizeService(project, location);
 
-const auth = new GoogleAuth({
-	scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-});
-const client = await auth.getApplicationDefault();
-const token = await client.credential.getAccessToken();
+// Vertex AIとの接続を管理する関数
+async function connectToVertexAI() {
+	if (clientWs) {
+		return; // 既に接続済みの場合は何もしない
+	}
 
-const app = new Hono();
+	const auth = new GoogleAuth({
+		scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+	});
+	const client = await auth.getApplicationDefault();
+	const token = await client.credential.getAccessToken();
 
-const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({
-	app: app,
-});
-
-const clientWs = new WebSocket(
-	`wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.${version}.LlmBidiService/BidiGenerateContent`,
-	{
-		headers: {
-			'content-type': 'application/json',
-			authorization: `Bearer ${token.token}`,
+	clientWs = new WebSocket(
+		`wss://${location}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.${version}.LlmBidiService/BidiGenerateContent`,
+		{
+			headers: {
+				'content-type': 'application/json',
+				authorization: `Bearer ${token.token}`,
+			},
 		},
-	},
-);
+	);
+
+	// Vertex AIとのWebSocket接続のイベントハンドラを設定
+	clientWs.on('open', () => {
+		console.log('Connected to Vertex AI');
+		// SetupMessageの送信
+		const data: SetupMessage = {
+			setup: {
+				model: `projects/${project}/locations/${location}/publishers/google/models/gemini-2.0-flash-exp`,
+				systemInstruction: {
+					parts: [
+						{
+							text: setUpPrompt,
+						},
+					],
+				},
+				generationConfig: {
+					responseModalities: 'audio',
+				},
+				tools: [{ functionDeclarations: [summarizeFunctionDeclaration] }],
+			},
+		};
+		clientWs.send(JSON.stringify(data));
+	});
+
+	// イベントハンドラを設定
+	setupVertexAIEventHandlers(clientWs);
+}
+
+function disconnectFromVertexAI() {
+	if (clientWs) {
+		clientWs.close();
+		clientWs = null;
+		console.log('Disconnected from Vertex AI');
+	}
+}
+
+// イベントハンドラを別関数に分離
+function setupVertexAIEventHandlers(ws: WebSocket) {
+	ws.on('message', async (message) => {
+		const response: LiveIncomingMessage = (await JSON.parse(
+			message.toString(),
+		)) as LiveIncomingMessage;
+
+		if (isToolCallMessage(response)) {
+			const summarizeFunctionCall = response.toolCall.functionCalls.find(
+				(fc) => fc.name === summarizeFunctionDeclaration.name,
+			);
+			if (summarizeFunctionCall) {
+				console.log(
+					'summarize呼び出し直前のcurrentTranscriptionText',
+					audioProcessor.getCurrentTranscription(),
+				);
+				if (!audioProcessor.getCurrentTranscription().trim()) {
+					console.log('No conversation to summarize');
+					return;
+				}
+				const summary = await summarizeService.summarize(
+					audioProcessor.getCurrentTranscription(),
+				);
+				serverWs.send(
+					JSON.stringify({
+						type: 'toolResponse',
+						text: summary,
+					}),
+				);
+
+				// Vertex AIにツールの実行結果を返す
+				const message: ToolResponseMessage = {
+					toolResponse: {
+						functionResponses: [
+							{
+								response: { output: { success: true } },
+								id: summarizeFunctionCall.id,
+							},
+						],
+					},
+				};
+				console.log('send', message);
+				clientWs.send(JSON.stringify(message));
+			}
+			return;
+		}
+
+		if (isToolCallCancellationMessage(response)) {
+			return;
+		}
+
+		if (isServerContentMessage(response)) {
+			const { serverContent } = response;
+
+			if (isInterrupted(serverContent)) {
+				console.log('receive.serverContent', 'interrupted');
+				await audioProcessor.processAccumulatedVertexAIAudio();
+				return;
+			}
+
+			if (isTurnComplete(serverContent)) {
+				console.log('receive.serverContent', 'turnComplete');
+				await audioProcessor.processAccumulatedVertexAIAudio();
+			}
+
+			if (isModelTurn(serverContent)) {
+				const parts: Part[] = serverContent.modelTurn.parts;
+				const audioParts = parts.filter((p) =>
+					p.inlineData?.mimeType.startsWith('audio/pcm'),
+				);
+
+				// 音声データをバッファに追加
+				for (const part of audioParts) {
+					if (part.inlineData?.data) {
+						const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
+						audioProcessor.handleVertexAIAudioChunk(audioBuffer);
+					}
+				}
+
+				// フロントエンドに音声データを転送
+				const content: ModelTurn = { modelTurn: { parts: audioParts } };
+				serverWs.send(JSON.stringify(content));
+			}
+
+			// フロントエンドにVertex AIのメッセージを転送
+			serverWs.send(JSON.stringify(response));
+		}
+	});
+
+	ws.on('close', (message) => {
+		console.log('Vertex AI WebSocket closed:', message);
+	});
+
+	ws.on('error', (error) => {
+		console.error('Vertex AI WebSocket error:', error);
+	});
+}
 
 const summarizeFunctionDeclaration: FunctionDeclaration = {
 	name: 'summarize',
@@ -308,28 +447,28 @@ const summarizeFunctionDeclaration: FunctionDeclaration = {
 
 const persona = '中途採用のプロフェッショナル';
 
-const instructions = `\
-	クライアントが採用したいポジションについて、ヒアリングを行ってください。\
+const instructions = `
+	クライアントが採用したいポジションについて、ヒアリングを行ってください。
 	第一声では必ず「この度はお時間ありがとうございます。早速ですが、採用したいポジションについて教えていただけますか。」と言ってください。
-	
-	## 以下が明確になるまで、ヒアリングを続けてください。\
-	- 採用したいポジションの名前 \
-	- 募集背景(なぜ採用したいのか) \
-	- 具体的な業務内容 \
-	- 採用したい人の特徴(スキルや経験、正確など) \
-	- ポジションの魅力(成長機会や他社との違いなど) \
-	- キャリアパス(成果を出していくと、どのようなキャリアパスがあるか) \
-	\
-	## ヒアリングで意識してほしい点 \
-	- "なぜその業務をやるのか" "なぜその経験が必要なのか"といった、目的や背景を深堀りする質問をしてください。\
-	- クライアントから抽象的な回答があった場合は、それを具体化(定量化)する深堀り質問をしてください。\
-	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなるような問いかけをしてください。\
-	\
-	## ツールの使用 \
+
+	## 以下が明確になるまで、ヒアリングを続けてください。
+	- 採用したいポジションの名前
+	- 募集背景(なぜ採用したいのか)
+	- 具体的な業務内容
+	- 採用したい人の特徴(スキルや経験、正確など)
+	- ポジションの魅力(成長機会や他社との違いなど)
+	- キャリアパス(成果を出していくと、どのようなキャリアパスがあるか)
+
+	## ヒアリングで意識してほしい点
+	- "なぜその業務をやるのか" "なぜその経験が必要なのか"といった、目的や背景を深堀りする質問をしてください。
+	- クライアントから抽象的な回答があった場合は、それを具体化(定量化)する深堀り質問をしてください。
+	- クライアントが回答に困っていそうな場合は、具体例や仮説を出して、クライアントのアイデアが出やすくなるような問いかけをしてください。
+
+	## ツールの使用
 	- ヒアリングが終わったら、summarizeツールを使用してヒアリング内容を要約してください。
-		- ヒアリング内容は、画面左側に表示されます。\
-	- 要約したヒアリング内容について、クライアントとの認識齟齬がないか確認してください。\
-		- 認識齟齬がある場合はヒアリングを再開して、summarizeツールを再度実行してください。\
+		- ヒアリング内容は、画面左側に表示されます。
+	- 要約したヒアリング内容について、クライアントとの認識齟齬がないか確認してください。
+		- 認識齟齬がある場合はヒアリングを再開して、summarizeツールを再度実行してください。
 	`;
 
 const setUpPrompt = `\
@@ -340,125 +479,10 @@ const setUpPrompt = `\
 	\
 `;
 
-clientWs.on('open', () => {
-	// SetupMessage
-	const data: SetupMessage = {
-		setup: {
-			model: `projects/${project}/locations/${location}/publishers/google/models/gemini-2.0-flash-exp`,
-			systemInstruction: {
-				parts: [
-					{
-						text: setUpPrompt,
-					},
-				],
-			},
-			generationConfig: {
-				responseModalities: 'audio',
-			},
-			tools: [{ functionDeclarations: [summarizeFunctionDeclaration] }],
-		},
-	};
-	const json = JSON.stringify(data);
-	clientWs.send(json);
-	console.log('clientWs open');
-});
+const app = new Hono();
 
-clientWs.on('message', async (message) => {
-	const response: LiveIncomingMessage = (await JSON.parse(
-		message.toString(),
-	)) as LiveIncomingMessage;
-
-	if (isToolCallMessage(response)) {
-		const summarizeFunctionCall = response.toolCall.functionCalls.find(
-			(fc) => fc.name === summarizeFunctionDeclaration.name,
-		);
-		if (summarizeFunctionCall) {
-			console.log(
-				'summarize呼び出し直前のcurrentTranscriptionText',
-				audioProcessor.getCurrentTranscription(),
-			);
-			if (!audioProcessor.getCurrentTranscription().trim()) {
-				console.log('No conversation to summarize');
-				return;
-			}
-			const summary = await summarizeService.summarize(
-				audioProcessor.getCurrentTranscription(),
-			);
-			serverWs.send(
-				JSON.stringify({
-					type: 'toolResponse',
-					text: summary,
-				}),
-			);
-
-			// Vertex AIにツールの実行結果を返す
-			const message: ToolResponseMessage = {
-				toolResponse: {
-					functionResponses: [
-						{
-							response: { output: { success: true } },
-							id: summarizeFunctionCall.id,
-						},
-					],
-				},
-			};
-			console.log('send', message);
-			clientWs.send(JSON.stringify(message));
-		}
-		return;
-	}
-
-	if (isToolCallCancellationMessage(response)) {
-		// TODO: ここの処理もいつか作る
-		// toolcallがキャンセルされたときの処理
-		return;
-	}
-
-	if (isServerContentMessage(response)) {
-		const { serverContent } = response;
-
-		if (isInterrupted(serverContent)) {
-			console.log('receive.serverContent', 'interrupted');
-			await audioProcessor.processAccumulatedVertexAIAudio();
-			return;
-		}
-
-		if (isTurnComplete(serverContent)) {
-			console.log('receive.serverContent', 'turnComplete');
-			await audioProcessor.processAccumulatedVertexAIAudio();
-		}
-
-		if (isModelTurn(serverContent)) {
-			const parts: Part[] = serverContent.modelTurn.parts;
-			const audioParts = parts.filter((p) =>
-				p.inlineData?.mimeType.startsWith('audio/pcm'),
-			);
-
-			// 音声データをバッファに追加
-			for (const part of audioParts) {
-				if (part.inlineData?.data) {
-					const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
-					audioProcessor.handleVertexAIAudioChunk(audioBuffer);
-				}
-			}
-
-			// フロントエンドに音声データを転送
-			const content: ModelTurn = { modelTurn: { parts: audioParts } };
-			serverWs.send(JSON.stringify(content));
-		}
-
-		// フロントエンドにVertex AIのメッセージを転送
-		serverWs.send(JSON.stringify(response));
-	}
-});
-
-clientWs.on('close', (message) => {
-	console.log('clientWs close', message);
-	clientWs.close();
-});
-
-clientWs.on('error', (error) => {
-	console.error('clientWs error', error);
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({
+	app: app,
 });
 
 app.get(
@@ -470,16 +494,31 @@ app.get(
 					const message = messageEvent.toString();
 					const parsedData = await JSON.parse(message);
 
+					// 接続制御メッセージの処理を追加
+					if (parsedData.type === 'connection_control') {
+						if (parsedData.action === 'connect') {
+							await connectToVertexAI();
+							serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'connected' }));
+						} else if (parsedData.action === 'disconnect') {
+							disconnectFromVertexAI();
+							serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'disconnected' }));
+						}
+						return;
+					}
+
+					// 音声データの処理
 					if (parsedData.realtimeInput?.mediaChunks) {
 						const chunks = parsedData.realtimeInput.mediaChunks;
 
 						// Vertex AIに音声データを転送
-						const realtimeInput: RealtimeInputMessage = {
-							realtimeInput: {
-								mediaChunks: chunks,
-							},
-						};
-						clientWs.send(JSON.stringify(realtimeInput));
+						if (clientWs && clientWs.readyState === WebSocket.OPEN) {
+							const realtimeInput: RealtimeInputMessage = {
+								realtimeInput: {
+									mediaChunks: chunks,
+								},
+							};
+							clientWs.send(JSON.stringify(realtimeInput));
+						}
 
 						// ユーザーの音声認識処理
 						for (const chunk of chunks) {
@@ -509,16 +548,14 @@ app.get(
 
 					if (parsedData.type === 'transcription_update') {
 						console.log('Received transcription update:', parsedData.text);
-						// transcriptionTextを更新
-						// Note: この部分は必要に応じてAudioProcessorに移動することも検討可能
 					}
 				} catch (error) {
 					console.error('Error parsing WebSocket message:', error);
 				}
 			},
 			onClose: () => {
-				console.log('Connection to UI closed');
-				// clientWs.close();
+				console.log('UI connection closed');
+				disconnectFromVertexAI();
 			},
 		};
 	}),
