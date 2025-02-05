@@ -5,12 +5,12 @@
 
 ## Web アプリの概要
 
-- ブラウザ上で Gemini 2.0 と音声で対話できます。
+- Gemini 2.0 が特定テーマについて音声でヒアリングします。
 
 ### 機能
 
 - Connect / Disconnect ボタンで接続状態の管理
-- Mic Off / Mic On ボタンで音声入力可否の切り替え
+- Mic On / Mic Off ボタンで音声入力可否の切り替え
 - 特定テーマに対して Gemini がヒアリング
   - 初期設定は中途採用で募集したいポジションの詳細
 - 発言内容をリアルタイムで表示
@@ -61,7 +61,7 @@ gcloud auth application-default login
 
 - コンソール画面から有効化してください。
 
-1. 環境変数の設定
+7. 環境変数の設定
 
 - `.env.template` を `.env.local` にリネームして、プロジェクト ID を設定してください。
 
@@ -103,7 +103,7 @@ const setUpPrompt = `\
     `;
 ```
 
-1. バックエンドサーバー起動
+9. バックエンド起動
 
 ```sh
 npm run dev
