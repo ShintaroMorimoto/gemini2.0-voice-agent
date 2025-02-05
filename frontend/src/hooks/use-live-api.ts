@@ -32,11 +32,14 @@ export function useLiveAPI({
 }): UseLiveAPIResults {
 	const client = useMemo(() => new MultimodalLiveClient({ url }), [url]);
 	const audioStreamRef = useRef<AudioStreamer | null>(null);
-
 	const [connected, setConnected] = useState(false);
 	const [config, setConfig] = useState<LiveConfig>({
 		model: 'models/gemini-2.0-flash-exp',
 	});
+	const connectPromiseRef = useRef<{
+		resolve: (value: boolean) => void;
+		reject: (reason?: any) => void;
+	} | null>(null);
 
 	useEffect(() => {
 		if (!audioStreamRef.current) {
@@ -50,6 +53,8 @@ export function useLiveAPI({
 	useEffect(() => {
 		const onClose = () => {
 			setConnected(false);
+			connectPromiseRef.current?.reject(new Error('Connection closed'));
+			connectPromiseRef.current = null;
 		};
 
 		const stopAudioStreamer = () => audioStreamRef.current?.stop();
@@ -62,6 +67,18 @@ export function useLiveAPI({
 			try {
 				if (typeof content === 'string') {
 					const parsedContent = JSON.parse(content);
+					if (parsedContent.type === 'connection_status') {
+						const isConnected = parsedContent.status === 'connected';
+						setConnected(isConnected);
+						if (isConnected) {
+							connectPromiseRef.current?.resolve(true);
+						} else {
+							connectPromiseRef.current?.reject(new Error('Connection failed'));
+						}
+						connectPromiseRef.current = null;
+						return;
+					}
+
 					if (isModelTurn(parsedContent)) {
 						const audioParts = parsedContent.modelTurn.parts.filter((part) =>
 							part.inlineData?.mimeType.startsWith('audio/pcm'),
@@ -73,7 +90,6 @@ export function useLiveAPI({
 							}
 						}
 					} else if (parsedContent.type === 'transcription') {
-						// transcriptionTextの更新
 						setTranscriptionText((prevText) => {
 							const prefix =
 								parsedContent.role === 'assistant_ui' ? 'AI' : 'あなた';
@@ -104,24 +120,61 @@ export function useLiveAPI({
 	}, [client, setTranscriptionText, setSummaryText]);
 
 	const connect = useCallback(async () => {
-		client.disconnect();
-		await client.connect();
-		// バックエンドにconnect要求を送信
-		client.ws?.send(JSON.stringify({
-			type: 'connection_control',
-			action: 'connect'
-		}));
-		setConnected(true);
+		try {
+			client.disconnect();
+			await client.connect();
+
+			// Promiseを作成して、connection_statusメッセージを待つ
+			const connectionPromise = new Promise<boolean>((resolve, reject) => {
+				// タイムアウト処理
+				const timeoutId = setTimeout(() => {
+					reject(new Error('Connection timeout'));
+					connectPromiseRef.current = null;
+				}, 10000); // 10秒でタイムアウト
+
+				// resolveとrejectを保存
+				connectPromiseRef.current = {
+					resolve: (value: boolean) => {
+						clearTimeout(timeoutId);
+						resolve(value);
+					},
+					reject: (reason?: any) => {
+						clearTimeout(timeoutId);
+						reject(reason);
+					},
+				};
+			});
+
+			// バックエンドにconnect要求を送信
+			client.ws?.send(
+				JSON.stringify({
+					type: 'connection_control',
+					action: 'connect',
+				}),
+			);
+
+			// connection_statusメッセージを待つ
+			await connectionPromise;
+		} catch (error) {
+			console.error('Connection error:', error);
+			setConnected(false);
+			throw error;
+		}
 	}, [client]);
 
 	const disconnect = useCallback(async () => {
-		// バックエンドにdisconnect要求を送信
-		client.ws?.send(JSON.stringify({
-			type: 'connection_control',
-			action: 'disconnect'
-		}));
-		client.disconnect();
-		setConnected(false);
+		try {
+			client.ws?.send(
+				JSON.stringify({
+					type: 'connection_control',
+					action: 'disconnect',
+				}),
+			);
+			client.disconnect();
+			setConnected(false);
+		} catch (error) {
+			console.error('Disconnection error:', error);
+		}
 	}, [client]);
 
 	return { client, config, setConfig, connected, connect, disconnect };

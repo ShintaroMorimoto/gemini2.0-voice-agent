@@ -1,11 +1,11 @@
 import { useLiveAPI } from '@/hooks/use-live-api';
 import type { MultimodalLiveClient } from '@/lib/multimodal-live-client';
 import {
-    type ReactNode,
-    createContext,
-    useContext,
-    useEffect,
-    useState,
+	type ReactNode,
+	createContext,
+	useContext,
+	useEffect,
+	useState,
 } from 'react';
 
 export type LiveAPIContextType = {

@@ -178,10 +178,20 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 								if (parsedData.type === 'connection_control') {
 									if (parsedData.action === 'connect') {
 										await connectToVertexAI();
-										serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'connected' }));
+										serverWs?.send(
+											JSON.stringify({
+												type: 'connection_status',
+												status: 'connected',
+											}),
+										);
 									} else if (parsedData.action === 'disconnect') {
 										disconnectFromVertexAI();
-										serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'disconnected' }));
+										serverWs?.send(
+											JSON.stringify({
+												type: 'connection_status',
+												status: 'disconnected',
+											}),
+										);
 									}
 									return;
 								}
@@ -214,20 +224,29 @@ export const createNodeWebSocket = (init: NodeWebSocketInit): NodeWebSocket => {
 											}
 
 											if (!chunk.mimeType.includes('audio/pcm')) {
-												console.log('Unsupported audio format:', chunk.mimeType);
+												console.log(
+													'Unsupported audio format:',
+													chunk.mimeType,
+												);
 												continue;
 											}
 
 											const buffer = Buffer.from(chunk.data, 'base64');
 											audioProcessor.handleUserAudioChunk(buffer);
 										} catch (error) {
-											console.error('Error processing user audio chunk:', error);
+											console.error(
+												'Error processing user audio chunk:',
+												error,
+											);
 										}
 									}
 								}
 
 								if (parsedData.type === 'transcription_update') {
-									console.log('Received transcription update:', parsedData.text);
+									console.log(
+										'Received transcription update:',
+										parsedData.text,
+									);
 								}
 							} catch (error) {
 								console.error('Error parsing WebSocket message:', error);
@@ -316,7 +335,9 @@ async function connectToVertexAI() {
 				tools: [{ functionDeclarations: [summarizeFunctionDeclaration] }],
 			},
 		};
-		clientWs.send(JSON.stringify(data));
+		if (clientWs) {
+			clientWs.send(JSON.stringify(data));
+		}
 	});
 
 	// イベントハンドラを設定
@@ -373,7 +394,9 @@ function setupVertexAIEventHandlers(ws: WebSocket) {
 					},
 				};
 				console.log('send', message);
-				clientWs.send(JSON.stringify(message));
+				if (clientWs) {
+					clientWs.send(JSON.stringify(message));
+				}
 			}
 			return;
 		}
@@ -498,10 +521,20 @@ app.get(
 					if (parsedData.type === 'connection_control') {
 						if (parsedData.action === 'connect') {
 							await connectToVertexAI();
-							serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'connected' }));
+							serverWs?.send(
+								JSON.stringify({
+									type: 'connection_status',
+									status: 'connected',
+								}),
+							);
 						} else if (parsedData.action === 'disconnect') {
 							disconnectFromVertexAI();
-							serverWs?.send(JSON.stringify({ type: 'connection_status', status: 'disconnected' }));
+							serverWs?.send(
+								JSON.stringify({
+									type: 'connection_status',
+									status: 'disconnected',
+								}),
+							);
 						}
 						return;
 					}
