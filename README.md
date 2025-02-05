@@ -111,8 +111,6 @@ npm run dev
 
 ### Cloud Run へのデプロイ
 
-1. デプロイ
-
 - `PROJECT_ID`の部分を変更して実行してください。
 - 実行すると初回は「Cloud Build の API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
 
