@@ -57,7 +57,7 @@ gcloud config set project PROJECT-ID
 gcloud auth application-default login
 ```
 
-6. Speech-To-Text API の有効化
+6. Speech-to-Text の有効化
 
 - コンソール画面から有効化してください
 
