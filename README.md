@@ -59,6 +59,8 @@ gcloud auth application-default login
 
 6. Speech-To-Text API の有効化
 
+- コンソール画面から有効化してください
+
 7. 環境変数の設定
 
 - `.env.template` を `.env.local` にリネームして、プロジェクト ID を設定してください
@@ -112,7 +114,7 @@ npm run dev
 1. デプロイ
 
 - `PROJECT_ID`の部分を変更して実行してください
-- 実行すると「Cloud Build の API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
+- 実行すると初回は「Cloud Build の API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
 
 ```sh
 gcloud run deploy --project=PROJECT_ID \
