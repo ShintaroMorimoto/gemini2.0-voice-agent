@@ -1,14 +1,14 @@
 import { AudioStreamer } from '@/lib/audio-streamer';
 import {
-	type MultimodalLiveAPIClientConnection,
-	MultimodalLiveClient,
+    type MultimodalLiveAPIClientConnection,
+    MultimodalLiveClient,
 } from '@/lib/multimodal-live-client';
 import { audioContext, base64ToArrayBuffer } from '@/lib/utils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-	type LiveConfig,
-	type ServerContent,
-	isModelTurn,
+    type LiveConfig,
+    type ServerContent,
+    isModelTurn,
 } from '../../multimodal-live-types';
 
 export type UseLiveAPIResults = {
@@ -106,10 +106,20 @@ export function useLiveAPI({
 	const connect = useCallback(async () => {
 		client.disconnect();
 		await client.connect();
+		// バックエンドにconnect要求を送信
+		client.ws?.send(JSON.stringify({
+			type: 'connection_control',
+			action: 'connect'
+		}));
 		setConnected(true);
 	}, [client]);
 
 	const disconnect = useCallback(async () => {
+		// バックエンドにdisconnect要求を送信
+		client.ws?.send(JSON.stringify({
+			type: 'connection_control',
+			action: 'disconnect'
+		}));
 		client.disconnect();
 		setConnected(false);
 	}, [client]);

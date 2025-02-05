@@ -1,10 +1,10 @@
 import type {
-	Content,
-	FunctionCall,
-	GenerationConfig,
-	GenerativeContentBlob,
-	Part,
-	Tool,
+    Content,
+    FunctionCall,
+    GenerationConfig,
+    GenerativeContentBlob,
+    Part,
+    Tool,
 } from '@google/generative-ai';
 
 export type LiveGenerationConfig = GenerationConfig & {
@@ -79,10 +79,21 @@ export type ToolCallMessage = {
 	toolCall: ToolCall;
 };
 
+export interface ConnectionControlMessage {
+	type: 'connection_control';
+	action: 'connect' | 'disconnect';
+}
+
+export interface ConnectionStatusMessage {
+	type: 'connection_status';
+	status: 'connected' | 'disconnected';
+}
+
 export type LiveIncomingMessage =
 	| ServerContentMessage
+	| ToolCallMessage
 	| ToolCallCancellationMessage
-	| ToolCallMessage;
+	| ConnectionStatusMessage;
 
 export type LiveFunctionResponse = {
 	response: object;
