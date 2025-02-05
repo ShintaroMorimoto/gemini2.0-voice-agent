@@ -57,9 +57,13 @@ gcloud config set project PROJECT-ID
 gcloud auth application-default login
 ```
 
-環境変数は `.env` への追加でも可 (`.env.template` を `.env.local` にリネームしてください)
+6. Speech-To-Text API の有効化
 
-6. (オプション)プロンプトの修正
+7. 環境変数の設定
+
+- `.env.template` を `.env.local` にリネームして、プロジェクト ID を設定してください
+
+8. (オプション)プロンプトの修正
 
 - 必要に応じて `backend/index.ts` のプロンプトを修正してください。
 - デフォルトでは以下のようになっています。
@@ -97,7 +101,7 @@ const setUpPrompt = `\
     `;
 ```
 
-7. バックエンド WebSocket サーバー起動
+9. バックエンド WebSocket サーバー起動
 
 ```sh
 npm run dev
@@ -105,25 +109,17 @@ npm run dev
 
 ### Cloud Run へのデプロイ
 
-1. Cloud Build のサービスアカウントへの権限付与
+1. デプロイ
 
-- [公式ドキュメント](https://cloud.google.com/build/docs/deploying-builds/deploy-cloud-run?hl=ja#continuous-iam)
-
-```sh
-gcloud iam service-accounts add-iam-policy-binding \
-  PROJECT_NUMBER-compute@developer.gserviceaccount.com \
-  --member="serviceAccount:PROJECT_NUMBER@cloudbuild.gserviceaccount.com" \
-  --role="roles/iam.serviceAccountUser"
-```
-
-2. デプロイ
+- `PROJECT_ID`の部分を変更して実行してください
+- 実行すると「Cloud Build の API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
 
 ```sh
-gcloud run deploy --project=PROJECT-ID \
+gcloud run deploy --project=PROJECT_ID \
 --region=us-central1 \
 --source=./ \
 --allow-unauthenticated \
---port=8000  \
---set-env-vars=PROJECT=PROJECT-ID,LOCATION=us-central1,VERSION=v1beta1
+--port=8080  \
+--set-env-vars=PROJECT=PROJECT_ID,LOCATION=us-central1,VERSION=v1beta1 \
 voice-agent
 ```
