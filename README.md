@@ -103,7 +103,7 @@ const setUpPrompt = `\
     `;
 ```
 
-9. バックエンド起動
+9. バックエンドの起動
 
 ```sh
 npm run dev

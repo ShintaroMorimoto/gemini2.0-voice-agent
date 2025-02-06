@@ -21,5 +21,5 @@ deploy:
 		--source=. \
 		--allow-unauthenticated \
 		--port=8080 \
-		--set-env-vars=PROJECT=$(PROJECT),LOCATION=${LOCATION},VERSION=v1beta1\
+		--set-env-vars=PROJECT=$(PROJECT),LOCATION=$(LOCATION),VERSION=v1beta1\
 		voice-agent
