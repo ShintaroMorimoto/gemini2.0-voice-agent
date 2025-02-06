@@ -7,10 +7,10 @@ RUN apk add --no-cache sox
 WORKDIR /app
 
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev
+RUN cd backend && npm ci
 
 COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm ci --omit=dev
+RUN cd frontend && npm ci
 
 COPY backend ./backend
 COPY frontend ./frontend
@@ -26,13 +26,13 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 appuser
 
-COPY --from=builder --chown=appuser:nodejs /app/backend/node_modules ./node_modules
+COPY backend/package*.json ./
+RUN npm ci --omit=dev
+
 COPY --from=builder --chown=appuser:nodejs /app/backend/dist ./dist
-COPY --from=builder --chown=appuser:nodejs /app/backend/package.json ./package.json
 COPY --from=builder /app/frontend/dist ./public
 
 USER appuser
-
 
 EXPOSE 8080
 
