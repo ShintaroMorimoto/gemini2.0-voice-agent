@@ -494,12 +494,11 @@ const instructions = `
 		- 認識齟齬がある場合はヒアリングを再開して、summarizeツールを再度実行してください。
 	`;
 
-const setUpPrompt = `\
-	あなたは${persona}です。\
+const setUpPrompt = `
+	あなたは${persona}です。
 	<instructions>
 	${instructions}
 	</instructions>
-	\
 `;
 
 const app = new Hono();

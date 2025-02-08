@@ -11,7 +11,7 @@
 
 - Connect / Disconnect ボタンで接続状態の管理
 - Mic On / Mic Off ボタンで音声入力可否の切り替え
-- 特定テーマに対して Gemini がヒアリング
+- プロンプトで設定した特定テーマについて Gemini がヒアリング
   - 初期設定は中途採用で募集したいポジションの詳細
 - 発言内容をリアルタイムで表示
 - 会話終了時にはその内容の要約を表示
@@ -50,18 +50,22 @@ cd backend && npm ci
 
 5. Google Cloud プロジェクトのセットアップ
 
+- Google Cloud プロジェクトの準備、gcloud cli のインストールはすでに完了済み前提です
+
 ```sh
 gcloud components update
 gcloud components install beta
-gcloud config set project PROJECT-ID
+gcloud config set project PROJECT_ID
 gcloud auth application-default login
 ```
 
-6. Speech-to-Text API の有効化
+1. 各種 API の有効化
 
-- コンソール画面から有効化してください。
+- 以下の API をコンソール画面からそれぞれ有効化してください。
+  - Speech-to-Text
+  - Vertex AI
 
-7. 環境変数の設定
+1. 環境変数の設定
 
 - `.env.template` を `.env.local` にリネームして、プロジェクト ID を設定してください。
 
@@ -114,12 +118,19 @@ npm run dev
 1. プロジェクト ID を環境変数にセット
 
 ```sh
-export PROJECT_ID=YOUR_PROJECT_ID
+export PROJECT_ID=PROJECT_ID
 ```
 
-2. デプロイ
+2. 認証
 
-- 実行すると初回は「Cloud Build の API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
+```sh
+gcloud config set project ${PROJECT_ID}
+gcloud auth login
+```
+
+3. デプロイ
+
+- 実行すると初回は「必要な API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
 
 ```sh
 gcloud run deploy --project=${PROJECT_ID} \
