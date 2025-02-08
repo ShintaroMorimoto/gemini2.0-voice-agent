@@ -1,7 +1,7 @@
 ## リポジトリの概要
 
 - [AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/2024-google-cloud-japan-ai-hackathon) 提出用
-- [紹介記事]()
+- [Zenn の紹介記事](https://zenn.dev/mrmtsntr/articles/3859ec6b61b63b)
 
 ## Web アプリの概要
 
