@@ -48,9 +48,11 @@ npm run dev
 cd backend && npm ci
 ```
 
-5. Google Cloud プロジェクトのセットアップ
+5. 各種セットアップ
 
-- Google Cloud プロジェクトの準備、gcloud cli のインストールはすでに完了済み前提です
+- 前提として、以下は完了している想定です。
+  - Google Cloud プロジェクトの課金有効化
+  - gcloud CLI のインストール
 
 ```sh
 gcloud components update
