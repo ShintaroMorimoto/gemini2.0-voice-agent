@@ -16,9 +16,9 @@
 - 発言内容をリアルタイムで表示
 - 会話終了時にはその内容の要約を表示
 
-### デモ
+### デモ (YouTube へのリンクです)
 
-<iframe src="https://www.youtube.com/embed/KNdZgyxNZL4"></iframe>
+[![デモ動画](/thumbnail.png)](https://youtube.com/watch?v=wKNdZgyxNZL4)
 
 ## クイックスタート
 
