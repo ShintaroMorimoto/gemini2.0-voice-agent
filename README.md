@@ -144,8 +144,11 @@ gcloud run deploy --project=${PROJECT_ID} \
 voice-agent
 ```
 
-- 以下のエラーが出る場合は、Cloud Build の設定から Cloud Run 管理者を有効にしてください。(ポップアップはskipで大丈夫です。)
+- 以下のエラーが出る場合は、Cloud Build の設定から Cloud Run 管理者を有効にしてください。
+  - ポップアップは skip で大丈夫です。
+
 ```sh
  (gcloud.run.deploy) PERMISSION_DENIED: The caller does not have permission. This command is authenticated as MAIL@EXAMPLE.COM which is the active account specified by the [core/account] property
 ```
-[ビルド時のエラー](/builderror.png)
+
+![ビルド時のエラー](/builderror.png)
