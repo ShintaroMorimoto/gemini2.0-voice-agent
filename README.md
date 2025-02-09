@@ -18,63 +18,77 @@
 
 ### デモ (YouTube へのリンクです)
 
-[![デモ動画](/thumbnail.png)](https://youtube.com/watch?v=wKNdZgyxNZL4)
+[![デモ動画](/thumbnail.png)](https://youtu.be/KNdZgyxNZL4)
 
 ## クイックスタート
 
-### ローカルでの実行
+- 以下 2 パターンを記載しています
+  - ローカルでの実行
+  - Cloud Run へデプロイしての実行
+- 前提として、以下は完了している想定です。
+  - Google Cloud プロジェクトの課金有効化
+  - gcloud CLI のインストール
 
-1. リポジトリのクローン
+### 共通手順
+
+1. プロジェクト ID を環境変数にセット
+
+```sh
+export PROJECT_ID=PROJECT_ID
+```
+
+2. gcloud CLI のコンポーネントのアップデートなど
+
+```sh
+gcloud components update
+gcloud components install beta
+```
+
+3. 使用する API を有効化
+
+   - 以下の API を有効化します。
+     - Speech-to-Text
+     - Vertex AI
+
+```sh
+gcloud config set project ${PROJECT_ID}
+gcloud services enable speech.googleapis.com aiplatform.googleapis.com --project=${PROJECT_ID}
+```
+
+4. リポジトリのクローン
 
 ```sh
 git clone https://github.com/ShintaroMorimoto/gemini2.0-voice-agent.git
 ```
 
-2. 依存関係のインストール(フロントエンド)
+### ローカルでの実行
+
+1. 依存関係のインストール(フロントエンド)
 
 ```sh
 cd frontend && npm ci
 ```
 
-3. フロントエンドの起動
+2. フロントエンドの起動
 
 ```sh
 npm run dev
 ```
 
-4. 依存関係のインストール(バックエンド)
+3. 依存関係のインストール(バックエンド)
 
 ```sh
 cd backend && npm ci
 ```
 
-5. 各種セットアップ
+4. 環境変数の設定
 
-- 前提として、以下は完了している想定です。
-  - Google Cloud プロジェクトの課金有効化
-  - gcloud CLI のインストール
+   - `.env.template` を `.env.local` にリネームして、プロジェクト ID を設定してください。
 
-```sh
-gcloud components update
-gcloud components install beta
-gcloud config set project PROJECT_ID
-gcloud auth application-default login
-```
+5. (オプション)プロンプトの修正
 
-1. 各種 API の有効化
-
-- 以下の API をコンソール画面からそれぞれ有効化してください。
-  - Speech-to-Text
-  - Vertex AI
-
-1. 環境変数の設定
-
-- `.env.template` を `.env.local` にリネームして、プロジェクト ID を設定してください。
-
-8. (オプション)プロンプトの修正
-
-- 必要に応じて `backend/index.ts` のプロンプトを修正してください。
-- デフォルトでは以下のようになっています。
+   - 必要に応じて `backend/index.ts` のプロンプトを修正してください。
+   - デフォルトでは以下のようになっています。
 
 ```typescript
 const persona = '中途採用のプロフェッショナル';
@@ -109,7 +123,13 @@ const setUpPrompt = `
     `;
 ```
 
-9. バックエンドの起動
+6. 認証
+
+```sh
+gcloud auth application-default login
+```
+
+7. バックエンドの起動
 
 ```sh
 npm run dev
@@ -117,22 +137,15 @@ npm run dev
 
 ### Cloud Run へのデプロイ
 
-1. プロジェクト ID を環境変数にセット
+1. 認証
 
 ```sh
-export PROJECT_ID=PROJECT_ID
-```
-
-2. 認証
-
-```sh
-gcloud config set project ${PROJECT_ID}
 gcloud auth login
 ```
 
-3. デプロイ
+2. デプロイ
 
-- 実行すると初回は「必要な API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
+   - 実行すると初回は「必要な API をオンにして良いですか？」や「Artifact Registry のリポジトリを作っても良いですか？」といった確認コマンドが出る場合がありますので、yes で進めてください。
 
 ```sh
 gcloud run deploy --project=${PROJECT_ID} \
@@ -145,7 +158,7 @@ voice-agent
 ```
 
 - 以下のエラーが出る場合は、Cloud Build の設定から Cloud Run 管理者を有効にしてください。
-  - ポップアップは skip で大丈夫です。
+  - 表示されるポップアップは skip を選択してください。
 
 ```sh
  (gcloud.run.deploy) PERMISSION_DENIED: The caller does not have permission. This command is authenticated as MAIL@EXAMPLE.COM which is the active account specified by the [core/account] property
